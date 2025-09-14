@@ -1,0 +1,430 @@
+
+Constant Story "Half Life 2: Interactive Fiction Edition";
+
+Constant Headline
+	"^A reimagining of Half Life 2 as an Infocom-style text adventure game^
+	By Eggbertx (2025)^";
+
+Constant MAX_SCORE 100;
+Release 1;
+
+Include "Parser";
+Include "VerbLib";
+Include "./abbreviations";
+Include "./hl2util";
+
+!-------------------------------------------------------------------------------
+! Initialization
+!-------------------------------------------------------------------------------
+
+[ Initialise;
+	#ifdef STARTLOC;
+		switch (STARTLOC) {
+			1: location = Intro;
+			2: location = PointInsertionTrainCar;
+			3: location = City17TrainStation;
+			4: location = City17TrainStationWaitingRoom;
+			5: location = NovaProspektLine;
+			6: location = InterrogationHallway;
+			default:
+				print "Invalid STARTLOC value ", STARTLOC, "^";
+				quit;
+		}
+		#iftrue STARTLOC > 2;
+			talks = 2;
+			train_arrived = true;
+		#endif;
+	#ifnot;
+		location = Intro;
+	#endif;
+];
+
+
+! ----------------------------------------------------------------------------
+! Intro (G-Man cutscene)
+! ----------------------------------------------------------------------------
+
+Object Intro "Half Life 2 Intro",
+	with description "",
+	after [;
+		print "You don't know where you are, or what you were doing. You are aware that
+			you are in a black void, but you can't remember how you got here.^^
+			You start to realize that you are in the presence of someone you have worked with
+			(or rather, for), known as the ~G-Man~.^^";
+		Pause();
+		print "He speaks to you with an odd cadence, ~Rise and shine, Mr Freeman, rise
+			and...shine. Not that I wish to imply you have been sleeping on...the job...
+			No one is more deserving of a rest. And all the effort in the world would have gone
+			to waste, until...well, let's just say your hour has...come again~. He pauses for
+			a moment.^^";
+		Pause();
+		print "~The right man in the wrong place can make all the difference in the world...
+			So wake up Mr. Freeman... Wake up and smell the ashes.~^^
+			He disappears, or rather, you reappear.^^";
+		Pause();
+		PlayerTo(PointInsertionTrainCar);
+	],
+	has enclosed;
+
+! ----------------------------------------------------------------------------
+! Point Insertion Train Car and children
+! ----------------------------------------------------------------------------
+
+GameLocation PointInsertionTrainCar "Point Insertion",
+	with name "train" "car",
+	description [;
+		if(train_arrived)
+			"You are standing in an empty train car that has just stopped at an unknown
+			location. The doors are open.";
+		"You are standing in a train car. The interior is dimly lit by flickering
+		fluorescent lights. There are a few melancholic looking citizens in denim coveralls
+		seated or standing about.";
+	],
+	out_to [;
+		if (train_arrived) {
+			score++;
+			return City17TrainStation;
+		}
+		"You can't leave yet, the doors are closed and the train is still moving. You can talk to the
+			other passengers to pass time as you wait, though.";
+	],
+	has light enclosed container;
+
+LimitedTalker -> DidntSeeYouGetOnCitizen "man standing by the doors",
+	with name "man" "standing" "up" "near" "by" "the" "door" "doors",
+	description "a man wearing denim coveralls and carrying a suitcase, standing by the train car doors",
+	talk_speech "He looks at you and says, ~I didn't see you get on.~",
+	talk2_speech "He mutters, ~This is my third transfer this year.~",
+	has male;
+
+LimitedTalker -> RelocatedCitizen "man sitting on the seat",
+	with name "man" "sitting" "down" "on" "the" "seat",
+	description "a man wearing denim coveralls, sitting on the seat holding a suitcase",
+	talk_speech "No matter how many times I get relocated, I never get used to it.",
+	has male;
+
+! ----------------------------------------------------------------------------
+! City 17 Train Station and children
+! ----------------------------------------------------------------------------
+
+Object City17TrainStation "City 17 Train Station",
+	with description "You are at a run-down train station, with melancholic looking citizens in denim coveralls passing through.",
+	w_to [;
+		if (GateToWaitingRoom hasnt open) {
+			print "(entering through the turnstile)^";
+			give GateToWaitingRoom open;
+		}
+		return GateToWaitingRoom;
+	],
+	has light;
+
+BreenCast -> BreenCastWelcome "BreenCast"
+	with name "large" "display" "showing" "Dr" "Breen" "breencast",
+	watch_breencast [;
+		"The televised Dr Breen says, ~Welcome. Welcome to City 17.^
+		You have chosen, or been chosen, to relocate to one of our finest remaining urban centers.
+		I thought so much of City 17 that I elected to establish my administration here, in the citadel so thoughtfully
+		provided by Our Benefactors. I have been proud to call City 17 my home. And so, whether you are here to stay,
+		or passing through on your way to parts unknown, welcome to City 17.^
+		It's safer here.~";
+	],
+	found_in City17TrainStation City17TrainStationWaitingRoom NovaProspektLine;
+
+LimitedTalker -> AreYouTheOnlyOnes "woman anxiously standing on the other side of the gate",
+	with name "woman" "standing" "by" "the" "gate",
+	description "a woman in coveralls standing by the train station gate",
+	talk_speech "She asks you, ~Are you the only ones on that train?~",
+	talk2_speech "She says, ~Overwatch stopped our train in the woods and took my husband for questioning.
+		They said he'd be on the next train. I'm not sure when that was...They're being nice, though, letting me wait for him.~",
+	has female;
+
+LimitedTalker -> MoveAway "civil protection officer harassing a citizen",
+	with name "civil" "protection" "officer" "cp" "cop" "harassing" "citizen",
+	description "a civil protection officer holding a stun baton, harassing a citizen about his luggage",
+	talk_speech [;
+		style bold;
+		print "~First warning, move away.~^";
+		style roman;
+		print "~But this stuff, it's all I have left...~ The civil protection officer strikes him with his baton.^";
+		style bold;
+		print "~Final warning, move it!~^";
+		style roman;
+		"~Alright, I'm moving, jeez...~^";
+	],
+	default_response "The civil protection officer looks at you and brandishes his stun baton.",
+	before [;
+		Watch,Listen:
+			<<Talk self>>;
+	],
+	life [;
+		Attack: "With what, your bare hands?";
+	];
+
+LimitedTalker -> VortigauntSweeping "Vortigaunt sweeping the floor",
+	with name "vortigaunt" "sweeping" "the" "floor",
+	description "a Vortigaunt, sweeping the floor with a broom",
+	has male;
+
+Object -> GateToWaitingRoom "turnstile to the waiting room",
+	with name "gate" "turnstile" "to" "waiting" "room",
+	description "a turnstile with a sign that says ~Citizen Processing Waiting Room~",
+	door_to City17TrainStationWaitingRoom,
+	door_open "The turnstile to the waiting room is open.",
+	door_dir [;
+		return City17TrainStationWaitingRoom;
+	],
+	has door openable;
+
+! ----------------------------------------------------------------------------
+! Waiting room and children
+! ----------------------------------------------------------------------------
+
+Object City17TrainStationWaitingRoom "City 17 Citizen Processing Waiting Room",
+	with description "You are in the waiting room of the train station. There are a few citizens in coveralls here, looking anxious.",
+	n_to [;
+		print "(getting in line for Nova Prospekt stop)^";
+		return NovaProspektLine;
+	],
+	has light;
+
+LimitedTalker -> PacingCitizen "man pacing back and forth, talking to himself",
+	with name "pacing" "man" "pacer",
+	description "a man in coveralls, pacing back and forth and muttering to himself",
+	default_response "~...they're always departing but they never arrive... and the ones that do arrive... they never leave...
+	you never see them go they're always full... no one ever gets on but they're always... they're always departing but they never arrive...~";
+
+LimitedTalker -> DontDrinkTheWaterCitizen "man sitting on a bench, looking confused",
+	with name "confused" "man" "sitting" "on" "bench",
+	description [;
+		print "a dazed looking man sitting on a bench";
+		if (self.talk_speech ~= 0)
+			print ". He gestures at you.";
+	],
+	talk_speech "He whispers, ~Don't drink the water. They put something in it to make you forget. I don't even remember how I got here.~";
+
+Object -> VendingMachine "vending machine",
+	with name "vending" "machine" "Dr" "Breens" "Private" "Reserve",
+	with description "a vending machine labelled ~Dr Breen's Private Reserve~.",
+	has static;
+
+LimitedTalker -> AnnoyedCitizen "annoyed looking man sitting on a bench",
+	with name "annoyed" "man" "citizen" "sitting" "on" "bench",
+	description "an annoyed looking man sitting on a bench, tapping his foot impatiently",
+	talk_speech "He says, ~I see they took your suitcase too! They can't get away with this much longer.~",
+	has male;
+
+LimitedTalker -> TwoCitizensBreenAgain "two citizens watching the breencast",
+	with name "two" "citizens",
+	description "two citizens in coveralls, watching the breencast on a large display",
+	talk_speech "One of them says, ~Dr. Breen again? I was hoping I'd seen the last of him in City 14.~^
+		The other replies, ~I wouldn't say that too loud. This is his base of operations.~",
+	before [;
+		Watch,Listen:
+			<<Talk self>>;
+	],
+	has proper pluralname;
+
+! ----------------------------------------------------------------------------
+! Nova Prospekt Line gate and children
+! ----------------------------------------------------------------------------
+
+Object NovaProspektLine "Line to Nova Prospekt Platform",
+	with name "line" "entry" "to" "Nova" "Prospekt",
+	description "a processing line leading to the Nova Prospekt train platform",
+	initial [;
+		if (self hasnt visited) {
+			print "You hear civil protection units giving commands to citizens.^";
+			style bold;
+			print "~You, citizen! Come with me! Move it!~^";
+			style roman;
+			print "~Wait a minute...~^";
+			style bold;
+			print "~Get in here.~^";
+			style roman;
+			print "~Where are you taking me?~^";
+			style bold;
+			print "~Go on!~^";
+			style roman;
+			print "~Me?!~^";
+			style bold;
+			print "~I said move!~^";
+			style roman;
+			"The civil protection officer opens the door and forces the citizen inside.^";
+		}
+	],
+	n_to [;
+		if (NovaProspektGate hasnt locked) {
+			give NovaProspektGate locked;
+			print "The gate beeps and locks itself before you can enter. The camera above the gate swivels to look at you.^";
+			print "A civil protection officer states, ";
+			style bold;
+			print "~Don't move.~^";
+			style roman;
+			give InterrogationHallwayDoor ~locked;
+			give InterrogationHallwayDoor open;
+			print "The security hallway door opens and an officer inside the hallway points at you.";
+			"~You, citizen! Come with me.~^";
+		}
+		return NovaProspektGate;
+	],
+	e_to InterrogationHallwayDoor,
+	has light;
+
+Object -> NovaProspektGate "gate to Nova Prospekt platform",
+	with name "gate" "to" "Nova" "Prospekt" "platform",
+	description "a gate with a sign labelled ~Nova Prospekt~",
+	after [;
+		Open:
+			NovaProspektLine.n_to();
+	],
+	door_to [;
+		return NovaProspektPlatform;
+	],
+	door_dir [;
+		! this should never be reachable, but just in case
+		return NovaProspektPlatform;
+	],
+	has door openable lockable;
+
+Object -> Camera "security camera",
+	with name "security" "camera",
+	with description [;
+		print "a security camera mounted to the wall, ";
+		if (self.looking_at)
+			"focused on you.";
+		"beeping every few seconds and swivelling from side to side";
+	],
+	after [;
+		Examine:
+			self.looking_at = true;
+			"The camera swivels to look at you.";
+	],
+	looking_at false,
+	found_in NovaProspektLine,
+	has static;
+
+Object -> InterrogationHallwayDoor "door"
+	with name "door" "to" "interrogation" "hallway",
+	description "a door with a sign labelled ~Security~",
+	door_to [;
+		if (self has locked) {
+			"You can't go through the door, it's locked.";
+		}
+		if (location == InterrogationHallway)
+			return NovaProspektLine;
+		return InterrogationHallway;
+	],
+	door_dir [;
+		if (self has locked) {
+			"You can't go through the door, it's locked.";
+		}
+		if (location == InterrogationHallway)
+			return NovaProspektLine;
+		return InterrogationHallway;
+	],
+	has door openable lockable locked;
+
+Object InterrogationHallway "Hallway to interrogation rooms",
+	with name "hallway" "to" "interrogation" "rooms",
+	description "a dimly lit hallway with two interrogation room doors",
+	initial [;
+		give InterrogationHallwayDoor locked;
+		"The door clicks behind you. The civil protection officer enters the door to the east and beckons you to follow him.^";
+	],
+	w_to InterrogationHallwayDoor,
+	n_to [;
+		if (InterrogationDoorN hasnt locked) {
+			give InterrogationDoorN locked;
+			"Through the viewing window of the door, you see a man sitting in an interrogation chair and a civil protection
+			officer through the window of the door.^^
+			You overhear the citizen indignantly says ~This must be a mistake. I got a standard relocation coupon, just like everybody else.~^^
+			Before you can respond, the officer closes the viewing window.";
+		}
+	],
+	e_to InterrogationDoorE,
+	has light;
+
+Object -> InterrogationDoorN "door to interrogation room 1",
+	with name "door" "to" "interrogation" "room" "1" "north",
+	description "a door with a sign labelled ~Interrogation Room 1~",
+	door_dir [;
+		return InterrogationRoom1;
+	],
+	has door openable lockable;
+
+Object -> InterrogationDoorE "door to interrogation room 2",
+	with name "door" "to" "interrogation" "room" "2" "east",
+	description "a door with a small viewing window and a sign labelled ~Interrogation Room 2~",
+	door_to InterrogationRoom2,
+	door_dir [;
+		return InterrogationRoom2;
+	],
+	has door openable lockable;
+
+Object InterrogationRoom1 "Interrogation Room 1",
+	with name "interrogation" "room" "1",
+	description "not reachable",
+	has light;
+
+Object InterrogationRoom2 "Interrogation Room 2",
+	with name "interrogation" "room" "2",
+	description "This room is lit by a single overhead lamp. There is a chair bolted to the floor in the center of the room,
+	and a one-way mirror on the wall.",
+	has light;
+
+! ----------------------------------------------------------------------------
+! Nova Prospekt Platform (unreachable)
+! ----------------------------------------------------------------------------
+
+Object NovaProspektPlatform "Nova Prospekt Train Platform",
+	with description "This area is supposed to be unreachable. If you are here, I screwed up.",
+	has light;
+
+! Object City17TrainStationVolatileTest "Danger zone test",
+! 	with description "testing agitated CPs",
+! 	s_to City17TrainStation,
+! 	danger_turn -1,
+! 	initial [;
+! 		self.danger_turn = turns + 3;
+! 	],
+! 	after [;
+! 		Look,Jump,Talk:
+! 			DangerTestHandler(self);
+! 	],
+! 	has light volatile;
+
+! LimitedTalker -> CP1 "angry looking civil protection unit",
+! 	with name "agitated" "civil" "protection" "unit" "cp" "cop",
+! 	description "a civil protection unit holding a stun baton, looking agitated",
+! 	! talk_speech "You, come here!",
+! 	before [;
+! 		Attack:
+! 			print "You can't fight him off with your bare hands!^";
+! 			location.danger_turn = turns;
+! 			DangerTestHandler(location);
+! 			rtrue;
+! 	],
+! 	has animate;
+
+! [ DangerTestHandler loc attacking;
+! 	if (action == ##Help) {
+! 		rfalse;
+! 	}
+! 	if (loc has volatile && loc.danger_turn < 0) {
+! 		loc.danger_turn = turns + 3;
+! 		print "setting danger turn to ", loc.danger_turn, "^";
+! 	}
+
+! 	if (turns >= loc.danger_turn) {
+! 		TakeDamage(2, 1);
+! 		print "The civil protection unit shouts ~Stop!~ and attacks you with his stun baton!^";
+! 		print "Your health is now ", health, ".^";
+! 	} else {
+! 		print "The civil protection unit looks agitated. You should probably leave soon.^";
+! 		print "(", (loc.danger_turn - turns), " turns until he attacks you)^";
+! 	}
+! 	if (health <= 0) {
+! 		deadflag = 1;
+! 		rtrue;
+! 	}
+! ];
