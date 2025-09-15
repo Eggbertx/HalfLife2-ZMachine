@@ -32,7 +32,6 @@ Include "./hl2util";
 		}
 		#iftrue STARTLOC > 2;
 			talks = 2;
-			train_arrived = true;
 		#endif;
 	#ifnot;
 		location = Intro;
@@ -73,7 +72,7 @@ Object Intro "Half Life 2 Intro",
 GameLocation PointInsertionTrainCar "Point Insertion",
 	with name "train" "car",
 	description [;
-		if(train_arrived)
+		if(self hasnt enclosed)
 			"You are standing in an empty train car that has just stopped at an unknown
 			location. The doors are open.";
 		"You are standing in a train car. The interior is dimly lit by flickering
@@ -81,7 +80,7 @@ GameLocation PointInsertionTrainCar "Point Insertion",
 		seated or standing about.";
 	],
 	out_to [;
-		if (train_arrived) {
+		if (self hasnt enclosed) {
 			score++;
 			return City17TrainStation;
 		}
@@ -100,7 +99,7 @@ LimitedTalker -> DidntSeeYouGetOnCitizen "man standing by the doors",
 LimitedTalker -> RelocatedCitizen "man sitting on the seat",
 	with name "man" "sitting" "down" "on" "the" "seat",
 	description "a man wearing denim coveralls, sitting on the seat holding a suitcase",
-	talk_speech "No matter how many times I get relocated, I never get used to it.",
+	talk_speech "He says, ~No matter how many times I get relocated, I never get used to it.~",
 	has male;
 
 ! ----------------------------------------------------------------------------
@@ -138,9 +137,10 @@ LimitedTalker -> AreYouTheOnlyOnes "woman anxiously standing on the other side o
 		They said he'd be on the next train. I'm not sure when that was...They're being nice, though, letting me wait for him.~",
 	has female;
 
-LimitedTalker -> MoveAway "civil protection officer harassing a citizen",
-	with name "civil" "protection" "officer" "cp" "cop" "harassing" "citizen",
-	description "a civil protection officer holding a stun baton, harassing a citizen about his luggage",
+
+Object -> MoveAway "civil protection officer",
+	class LimitedTalker CivilProtectionUnit,
+	with description "a civil protection officer holding a stun baton, harassing a citizen about his luggage",
 	talk_speech [;
 		style bold;
 		print "~First warning, move away.~^";
@@ -286,20 +286,21 @@ Object -> NovaProspektGate "gate to Nova Prospekt platform",
 	],
 	has door openable lockable;
 
-Object -> Camera "security camera",
+Object Camera "security camera",
 	with name "security" "camera",
 	with description [;
-		print "a security camera mounted to the wall, ";
-		if (self.looking_at)
+		print "A security camera mounted to the wall, ";
+		if (self has targeting_player)
 			"focused on you.";
-		"beeping every few seconds and swivelling from side to side";
+		"beeping every few seconds and swivelling from side to side.";
 	],
 	after [;
 		Examine:
-			self.looking_at = true;
-			"The camera swivels to look at you.";
+			if (self hasnt targeting_player) {
+				give self targeting_player;
+				"The camera swivels to look at you.^";
+			}
 	],
-	looking_at false,
 	found_in NovaProspektLine,
 	has static;
 

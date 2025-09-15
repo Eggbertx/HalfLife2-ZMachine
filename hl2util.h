@@ -1,7 +1,6 @@
 Constant MAX_HEALTH 5;
 
 Global talks = 0;
-Global train_arrived = false;
 ! health ranges from 0 to MAX_HEALTH, if it reaches 0, the player dies. In certain locations, the player
 ! automatically heals (depending on the location), and in others, they can heal by using a medkit.
 ! For simplicity, the HEV suit does not have a battery level, and the player can always use the flashlight,
@@ -43,8 +42,7 @@ Class LimitedTalker
 				"to say.";
 			}
 			if (talks >= 2 && location == PointInsertionTrainCar) {
-				train_arrived = true;
-				! give location ~enclosed; ! allow the player to exit the train car
+				give location ~enclosed; ! allows the player to exit the train car
 				remove DidntSeeYouGetOnCitizen;
 				remove RelocatedCitizen;
 				print "^";
@@ -75,6 +73,10 @@ Class BreenCast
 			rtrue;
 	],
 	has static;
+
+Class CivilProtectionUnit
+	with name "civil" "protection" "officer" "cp" "cop",
+	has animate male;
 
 Class GameLocation
 	with danger_turn  -1, ! if volatile and danger_turn > -1, something bad will happen when turns >= danger_turn
@@ -285,6 +287,7 @@ Class GameLocation
 Attribute volatile; ! for locations where looking/examining is not a free action
 Attribute healing; ! for locations where the player automatically heals
 Attribute enclosed; ! for locations where obvious exits should not be printed
+Attribute targeting_player; ! for NPCs and objects that are focused on or attacking the player
 
 ! ----------------------------------------------------------------------------
 ! Verb subroutines
@@ -310,6 +313,15 @@ Attribute enclosed; ! for locations where obvious exits should not be printed
 		print "You are wearing the HEV suit.^";
 ];
 
+[ NonsenseSub;
+	print "Nothing happens. What do you think this is, an Inform game?^";
+	score--;
+];
+
+[ ActivateSub n;
+	"Nothing happens.";
+];
+
 ! ----------------------------------------------------------------------------
 ! Grammar
 ! ----------------------------------------------------------------------------
@@ -317,6 +329,8 @@ Attribute enclosed; ! for locations where obvious exits should not be printed
 Include "Grammar";
 ! Include "./ExpertGrammar";
 
+Verb 'activate' 'use'
+	* noun -> Activate;
 
 Verb 'talk' 't//'
 	* 'to' noun -> Talk
@@ -342,3 +356,6 @@ Verb 'help' 'h//'
 
 Verb 'status' 'health'
 	* -> CheckHealth;
+
+Verb 'xyzzy' 'plugh' 'plover'
+	* -> Nonsense;
