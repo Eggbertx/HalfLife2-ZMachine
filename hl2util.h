@@ -304,7 +304,11 @@ Attribute targeting_player; ! for NPCs and objects that are focused on or attack
 	"It doesn't have much to say.";
 ];
 
-[ WatchSub;
+[ WatchSub o;
+	if (o ofclass BreenCast) {
+		rtrue;
+	}
+	"It's rude to stare.";
 ];
 
 [ CheckHealthSub;
@@ -320,6 +324,44 @@ Attribute targeting_player; ! for NPCs and objects that are focused on or attack
 
 [ ActivateSub n;
 	"Nothing happens.";
+];
+
+[ LookDirectionSub dir dir_obj;
+	if(ADirection(noun) == false) {
+		<<Examine noun>>;
+		rtrue;
+	}
+	print "Looking ";
+	switch(noun) {
+		n_obj: dir_obj = location.n_to;
+		s_obj: dir_obj = location.s_to;
+		w_obj: dir_obj = location.w_to;
+		e_obj: dir_obj = location.e_to;
+		nw_obj: dir_obj = location.nw_to;
+		ne_obj: dir_obj = location.ne_to;
+		sw_obj: dir_obj = location.sw_to;
+		se_obj: dir_obj = location.se_to;
+		u_obj: dir_obj = location.u_to;
+		d_obj: dir_obj = location.d_to;
+		in_obj: dir_obj = location.in_to;
+		out_obj: dir_obj = location.out_to;
+	}
+	if (noun == d_obj) {
+		print "down";
+	} else {
+		print (name)noun;
+	}
+	print ", you see ";
+	if (dir_obj ofclass Routine) {
+		dir_obj = dir_obj();
+	}
+	if (dir_obj == 0) {
+		"nothing unexpected.";
+	}
+	if (parent(dir_obj) == location) {
+		print_ret (a)dir_obj, ".";
+	}
+	print_ret (the)dir_obj, ".";
 ];
 
 ! ----------------------------------------------------------------------------
@@ -343,13 +385,13 @@ Extend 'watch' replace
 ! copying and extending this from the standard library version to add look <noun> for brevity
 Extend 'look' replace
 	*                                           -> Look
+	* noun=ADirection                           -> LookDirection
 	* noun                                      -> Examine
-	* 'at' noun                                 -> Examine
+	* 'at' noun                                 -> LookDirection
 	* 'inside'/'in'/'into'/'through'/'on' noun  -> Search
 	* 'under' noun                              -> LookUnder
 	* 'up' topic 'in' noun                      -> Consult
-	* noun=ADirection                           -> Examine
-	* 'to' noun=ADirection                      -> Examine;
+	* 'to' noun=ADirection                      -> LookDirection;
 
 Verb 'help' 'h//'
 	* -> Help;

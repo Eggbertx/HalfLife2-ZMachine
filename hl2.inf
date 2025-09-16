@@ -89,14 +89,16 @@ GameLocation PointInsertionTrainCar "Point Insertion",
 	],
 	has light enclosed container;
 
-LimitedTalker -> DidntSeeYouGetOnCitizen "man standing by the doors",
+Nearby DidntSeeYouGetOnCitizen "man standing by the doors",
+	class LimitedTalker,
 	with name "man" "standing" "up" "near" "by" "the" "door" "doors",
 	description "a man wearing denim coveralls and carrying a suitcase, standing by the train car doors",
 	talk_speech "He looks at you and says, ~I didn't see you get on.~",
 	talk2_speech "He mutters, ~This is my third transfer this year.~",
 	has male;
 
-LimitedTalker -> RelocatedCitizen "man sitting on the seat",
+Nearby RelocatedCitizen "man sitting on the seat",
+	class LimitedTalker,
 	with name "man" "sitting" "down" "on" "the" "seat",
 	description "a man wearing denim coveralls, sitting on the seat holding a suitcase",
 	talk_speech "He says, ~No matter how many times I get relocated, I never get used to it.~",
@@ -108,16 +110,27 @@ LimitedTalker -> RelocatedCitizen "man sitting on the seat",
 
 Object City17TrainStation "City 17 Train Station",
 	with description "You are at a run-down train station, with melancholic looking citizens in denim coveralls passing through.",
-	w_to [;
-		if (GateToWaitingRoom hasnt open) {
-			print "(entering through the turnstile)^";
-			give GateToWaitingRoom open;
-		}
-		return GateToWaitingRoom;
-	],
+	w_to TurnstileToWaitingRoom,
 	has light;
 
-BreenCast -> BreenCastWelcome "BreenCast"
+Object -> TurnstileToWaitingRoom "turnstile to the waiting room",
+	with name "turnstile" "to" "waiting" "room",
+	description "This is a turnstile with a sign that says ~Citizen Processing Waiting Room~",
+	door_to [;
+		print "(going through the turnstile)^";
+		give self ~open;
+		give self locked;
+		return City17TrainStationWaitingRoom;
+	],
+	door_open "The turnstile to the waiting room is open.",
+	door_dir [;
+		return City17TrainStationWaitingRoom;
+	],
+	found_in City17TrainStation City17TrainStationWaitingRoom,
+	has door openable open;
+
+Nearby BreenCastWelcome "BreenCast",
+	class BreenCast,
 	with name "large" "display" "showing" "Dr" "Breen" "breencast",
 	watch_breencast [;
 		"The televised Dr Breen says, ~Welcome. Welcome to City 17.^
@@ -129,7 +142,8 @@ BreenCast -> BreenCastWelcome "BreenCast"
 	],
 	found_in City17TrainStation City17TrainStationWaitingRoom NovaProspektLine;
 
-LimitedTalker -> AreYouTheOnlyOnes "woman anxiously standing on the other side of the gate",
+Nearby AreYouTheOnlyOnes "woman anxiously standing on the other side of the gate",
+	class LimitedTalker,
 	with name "woman" "standing" "by" "the" "gate",
 	description "a woman in coveralls standing by the train station gate",
 	talk_speech "She asks you, ~Are you the only ones on that train?~",
@@ -138,7 +152,7 @@ LimitedTalker -> AreYouTheOnlyOnes "woman anxiously standing on the other side o
 	has female;
 
 
-Object -> MoveAway "civil protection officer",
+Nearby MoveAway "civil protection officer",
 	class LimitedTalker CivilProtectionUnit,
 	with description "a civil protection officer holding a stun baton, harassing a citizen about his luggage",
 	talk_speech [;
@@ -160,40 +174,30 @@ Object -> MoveAway "civil protection officer",
 		Attack: "With what, your bare hands?";
 	];
 
-LimitedTalker -> VortigauntSweeping "Vortigaunt sweeping the floor",
+Nearby VortigauntSweeping "Vortigaunt sweeping the floor",
 	with name "vortigaunt" "sweeping" "the" "floor",
-	description "a Vortigaunt, sweeping the floor with a broom",
-	has male;
-
-Object -> GateToWaitingRoom "turnstile to the waiting room",
-	with name "gate" "turnstile" "to" "waiting" "room",
-	description "a turnstile with a sign that says ~Citizen Processing Waiting Room~",
-	door_to City17TrainStationWaitingRoom,
-	door_open "The turnstile to the waiting room is open.",
-	door_dir [;
-		return City17TrainStationWaitingRoom;
-	],
-	has door openable;
+	description "The Vortigaunt is sweeping the floor with a broom",
+	has male animate;
 
 ! ----------------------------------------------------------------------------
-! Waiting room and children
+! Waiting Room
 ! ----------------------------------------------------------------------------
 
 Object City17TrainStationWaitingRoom "City 17 Citizen Processing Waiting Room",
 	with description "You are in the waiting room of the train station. There are a few citizens in coveralls here, looking anxious.",
-	n_to [;
-		print "(getting in line for Nova Prospekt stop)^";
-		return NovaProspektLine;
-	],
+	n_to NovaProspektLine,
+	e_to TurnstileToWaitingRoom,
 	has light;
 
-LimitedTalker -> PacingCitizen "man pacing back and forth, talking to himself",
+Nearby PacingCitizen "man pacing back and forth, talking to himself",
+	class LimitedTalker,
 	with name "pacing" "man" "pacer",
 	description "a man in coveralls, pacing back and forth and muttering to himself",
 	default_response "~...they're always departing but they never arrive... and the ones that do arrive... they never leave...
 	you never see them go they're always full... no one ever gets on but they're always... they're always departing but they never arrive...~";
 
-LimitedTalker -> DontDrinkTheWaterCitizen "man sitting on a bench, looking confused",
+Nearby DontDrinkTheWaterCitizen "man sitting on a bench, looking confused",
+	class LimitedTalker,
 	with name "confused" "man" "sitting" "on" "bench",
 	description [;
 		print "a dazed looking man sitting on a bench";
@@ -202,18 +206,20 @@ LimitedTalker -> DontDrinkTheWaterCitizen "man sitting on a bench, looking confu
 	],
 	talk_speech "He whispers, ~Don't drink the water. They put something in it to make you forget. I don't even remember how I got here.~";
 
-Object -> VendingMachine "vending machine",
+Nearby VendingMachine "vending machine",
 	with name "vending" "machine" "Dr" "Breens" "Private" "Reserve",
 	with description "a vending machine labelled ~Dr Breen's Private Reserve~.",
 	has static;
 
-LimitedTalker -> AnnoyedCitizen "annoyed looking man sitting on a bench",
+Nearby AnnoyedCitizen "annoyed looking man sitting on a bench",
+	class LimitedTalker,
 	with name "annoyed" "man" "citizen" "sitting" "on" "bench",
 	description "an annoyed looking man sitting on a bench, tapping his foot impatiently",
 	talk_speech "He says, ~I see they took your suitcase too! They can't get away with this much longer.~",
 	has male;
 
-LimitedTalker -> TwoCitizensBreenAgain "two citizens watching the breencast",
+Nearby TwoCitizensBreenAgain "two citizens watching the breencast",
+	class LimitedTalker,
 	with name "two" "citizens",
 	description "two citizens in coveralls, watching the breencast on a large display",
 	talk_speech "One of them says, ~Dr. Breen again? I was hoping I'd seen the last of him in City 14.~^
@@ -225,13 +231,14 @@ LimitedTalker -> TwoCitizensBreenAgain "two citizens watching the breencast",
 	has proper pluralname;
 
 ! ----------------------------------------------------------------------------
-! Nova Prospekt Line gate and children
+! Nova Prospekt Line and gate
 ! ----------------------------------------------------------------------------
 
 Object NovaProspektLine "Line to Nova Prospekt Platform",
 	with name "line" "entry" "to" "Nova" "Prospekt",
 	description "a processing line leading to the Nova Prospekt train platform",
 	initial [;
+		print "(getting in line for Nova Prospekt stop)^";
 		if (self hasnt visited) {
 			print "You hear civil protection units giving commands to citizens.^";
 			style bold;
@@ -270,7 +277,7 @@ Object NovaProspektLine "Line to Nova Prospekt Platform",
 	e_to InterrogationHallwayDoor,
 	has light;
 
-Object -> NovaProspektGate "gate to Nova Prospekt platform",
+Nearby NovaProspektGate "gate to Nova Prospekt platform",
 	with name "gate" "to" "Nova" "Prospekt" "platform",
 	description "a gate with a sign labelled ~Nova Prospekt~",
 	after [;
@@ -286,7 +293,7 @@ Object -> NovaProspektGate "gate to Nova Prospekt platform",
 	],
 	has door openable lockable;
 
-Object Camera "security camera",
+Nearby Camera "security camera",
 	with name "security" "camera",
 	with description [;
 		print "A security camera mounted to the wall, ";
@@ -304,7 +311,7 @@ Object Camera "security camera",
 	found_in NovaProspektLine,
 	has static;
 
-Object -> InterrogationHallwayDoor "door"
+Nearby InterrogationHallwayDoor "door"
 	with name "door" "to" "interrogation" "hallway",
 	description "a door with a sign labelled ~Security~",
 	door_to [;
@@ -324,6 +331,10 @@ Object -> InterrogationHallwayDoor "door"
 		return InterrogationHallway;
 	],
 	has door openable lockable locked;
+
+! ----------------------------------------------------------------------------
+! Interrogation Hallway and Barnie/Dr. Kleiner cutscene
+! ----------------------------------------------------------------------------
 
 Object InterrogationHallway "Hallway to interrogation rooms",
 	with name "hallway" "to" "interrogation" "rooms",
@@ -345,7 +356,7 @@ Object InterrogationHallway "Hallway to interrogation rooms",
 	e_to InterrogationDoorE,
 	has light;
 
-Object -> InterrogationDoorN "door to interrogation room 1",
+Nearby InterrogationDoorN "door to interrogation room 1",
 	with name "door" "to" "interrogation" "room" "1" "north",
 	description "a door with a sign labelled ~Interrogation Room 1~",
 	door_dir [;
@@ -353,7 +364,7 @@ Object -> InterrogationDoorN "door to interrogation room 1",
 	],
 	has door openable lockable;
 
-Object -> InterrogationDoorE "door to interrogation room 2",
+Nearby InterrogationDoorE "door to interrogation room 2",
 	with name "door" "to" "interrogation" "room" "2" "east",
 	description "a door with a small viewing window and a sign labelled ~Interrogation Room 2~",
 	door_to InterrogationRoom2,
