@@ -11,6 +11,8 @@ Global wearing_hev = false;
 ! ----------------------------------------------------------------------------
 ! Classes
 ! ----------------------------------------------------------------------------
+Constant InvalidAreaDescription "This area is supposed to be unreachable. If you are here, I screwed up.";
+
 
 ! a person (or persons) who the user can talk to up to 3 times, after that they will respond with default_response if set,
 ! otherwise they will say they have nothing more to say.
@@ -74,6 +76,8 @@ Class BreenCast
 	],
 	has static;
 
+
+
 Class CivilProtectionUnit
 	with name "civil" "protection" "officer" "cp" "cop",
 	has animate male;
@@ -99,6 +103,21 @@ Class GameLocation
 	! 	}
 	! ],
 	has light;
+
+Class LocationDoor
+	with after [;
+		Look,Examine:
+			print (The)self ," is ";
+			if (self has open) {
+				"open.";
+			}
+			print "closed";
+			if (self has lockable && self has locked) {
+				" and locked.";
+			}
+			".";
+	],
+	has door openable static;
 
 ! ----------------------------------------------------------------------------
 ! Helper subroutines
@@ -237,7 +256,11 @@ Class GameLocation
 	} else if (menu_item == 2) {
 		! About this demake
 		print "This is a text adventure demake of Half-Life 2. It was made using the Inform 6 programming language,
-		which compiles to Z-machine format. The source code is available at https://github.com/Eggbertx/HalfLife2-ZMachine.";
+		which compiles to Z-machine format. The source code is available at https://github.com/Eggbertx/HalfLife2-ZMachine.^^
+		NOTE: This is a fan work, and is not affiliated with or endorsed by Valve Corporation or
+		its affiliates in any way. Half-Life 2 and all related characters, names,
+		locations, and other elements are the property of Valve Corporation. This demake is
+		a non-commercial project made for educational and entertainment purposes only.";
 	} else if (menu_item == 3) {
 		! Tips and tricks
 		print "Some tips and tricks for playing this game:^
@@ -265,8 +288,13 @@ Class GameLocation
 
 [ AfterLife;
 	switch (deadflag) {
-		1: "You probably should have avoided that civil protection unit";
-		default: "You died.";
+		-1: print "You probably should have avoided that civil protection unit"; ! killed by test CP, removed
+		-2: print "You probably should have listened to Barney and left when you had the chance."; ! killed by Combine soldiers in the interrogation room
+	}
+	if (deadflag < 0 && deadflag == -2) {
+		deadflag = -deadflag;
+	} else if (deadflag < 0) {
+		deadflag = 1;
 	}
 ];
 
@@ -318,7 +346,7 @@ Attribute targeting_player; ! for NPCs and objects that are focused on or attack
 ];
 
 [ NonsenseSub;
-	print "Nothing happens. What do you think this is, an Inform game?^";
+	print "Nothing happens. What do you think this is, an Infocom game?^";
 	score--;
 ];
 
@@ -326,10 +354,9 @@ Attribute targeting_player; ! for NPCs and objects that are focused on or attack
 	"Nothing happens.";
 ];
 
-[ LookDirectionSub dir dir_obj;
+[ LookDirectionSub dir_obj;
 	if(ADirection(noun) == false) {
 		<<Examine noun>>;
-		rtrue;
 	}
 	print "Looking ";
 	switch(noun) {
@@ -392,6 +419,9 @@ Extend 'look' replace
 	* 'under' noun                              -> LookUnder
 	* 'up' topic 'in' noun                      -> Consult
 	* 'to' noun=ADirection                      -> LookDirection;
+
+Verb 'stack'
+	* multiexcept 'on'/'onto' noun -> PutOn;
 
 Verb 'help' 'h//'
 	* -> Help;

@@ -26,12 +26,19 @@ Include "./hl2util";
 			4: location = City17TrainStationWaitingRoom;
 			5: location = NovaProspektLine;
 			6: location = InterrogationHallway;
+			7: location = InterrogationRoom2;
+			8: location = StorageRoomFloor;
 			default:
 				print "Invalid STARTLOC value ", STARTLOC, "^";
 				quit;
 		}
 		#iftrue STARTLOC > 2;
 			talks = 2;
+			score++;
+		#endif;
+		#iftrue STARTLOC > 7;
+			score++;
+			InterrogationRoom2.danger_turn = turns + 4;
 		#endif;
 	#ifnot;
 		location = Intro;
@@ -114,33 +121,24 @@ Object City17TrainStation "City 17 Train Station",
 	has light;
 
 Object -> TurnstileToWaitingRoom "turnstile to the waiting room",
+	class LocationDoor,
 	with name "turnstile" "to" "waiting" "room",
 	description "This is a turnstile with a sign that says ~Citizen Processing Waiting Room~",
 	door_to [;
 		print "(going through the turnstile)^";
-		give self ~open;
-		give self locked;
 		return City17TrainStationWaitingRoom;
 	],
-	door_open "The turnstile to the waiting room is open.",
-	door_dir [;
-		return City17TrainStationWaitingRoom;
+	door_dir City17TrainStationWaitingRoom,
+	before [;
+		Open,Enter:
+			if (location == City17TrainStation)
+				<<Go w_obj>>;
+			"This is a one-way turnstile.";
+		Close:
+			print_ret (The)self, " is not something you can close.";
 	],
 	found_in City17TrainStation City17TrainStationWaitingRoom,
-	has door openable open;
-
-Nearby BreenCastWelcome "BreenCast",
-	class BreenCast,
-	with name "large" "display" "showing" "Dr" "Breen" "breencast",
-	watch_breencast [;
-		"The televised Dr Breen says, ~Welcome. Welcome to City 17.^
-		You have chosen, or been chosen, to relocate to one of our finest remaining urban centers.
-		I thought so much of City 17 that I elected to establish my administration here, in the citadel so thoughtfully
-		provided by Our Benefactors. I have been proud to call City 17 my home. And so, whether you are here to stay,
-		or passing through on your way to parts unknown, welcome to City 17.^
-		It's safer here.~";
-	],
-	found_in City17TrainStation City17TrainStationWaitingRoom NovaProspektLine;
+	has door open;
 
 Nearby AreYouTheOnlyOnes "woman anxiously standing on the other side of the gate",
 	class LimitedTalker,
@@ -153,22 +151,30 @@ Nearby AreYouTheOnlyOnes "woman anxiously standing on the other side of the gate
 
 
 Nearby MoveAway "civil protection officer",
-	class LimitedTalker CivilProtectionUnit,
-	with description "a civil protection officer holding a stun baton, harassing a citizen about his luggage",
-	talk_speech [;
-		style bold;
-		print "~First warning, move away.~^";
-		style roman;
-		print "~But this stuff, it's all I have left...~ The civil protection officer strikes him with his baton.^";
-		style bold;
-		print "~Final warning, move it!~^";
-		style roman;
-		"~Alright, I'm moving, jeez...~^";
+	class CivilProtectionUnit,
+	with description [;
+		if (self has targeting_player) {
+			"The civil protection officer looks at you and brandishes his stun baton.";
+		} else {
+			print "You see a civil protection officer holding a stun baton, harassing a citizen about his luggage.^";
+			style bold;
+			print "~First warning, move away.~^";
+			style roman;
+			print "~But this stuff, it's all I have left...~ The civil protection officer strikes him with his baton.^";
+			style bold;
+			print "~Final warning, move it!~^";
+			style roman;
+			print "~Alright, I'm moving, jeez...~^The citizen steps away from the luggage and passes through the turnstile.";
+			give self targeting_player;
+		}
 	],
-	default_response "The civil protection officer looks at you and brandishes his stun baton.",
 	before [;
 		Watch,Listen:
-			<<Talk self>>;
+			if(self hasnt targeting_player) {
+				<<Examine self>>;
+			}
+		Talk:
+			<<Examine self>>;
 	],
 	life [;
 		Attack: "With what, your bare hands?";
@@ -176,7 +182,7 @@ Nearby MoveAway "civil protection officer",
 
 Nearby VortigauntSweeping "Vortigaunt sweeping the floor",
 	with name "vortigaunt" "sweeping" "the" "floor",
-	description "The Vortigaunt is sweeping the floor with a broom",
+	description "The Vortigaunt is sweeping the floor with a broom.",
 	has male animate;
 
 ! ----------------------------------------------------------------------------
@@ -184,10 +190,20 @@ Nearby VortigauntSweeping "Vortigaunt sweeping the floor",
 ! ----------------------------------------------------------------------------
 
 Object City17TrainStationWaitingRoom "City 17 Citizen Processing Waiting Room",
-	with description "You are in the waiting room of the train station. There are a few citizens in coveralls here, looking anxious.",
+	with description "You are in the waiting room of the train station.",
+	initial [;
+		give TurnstileToWaitingRoom ~open;
+		give TurnstileToWaitingRoom locked;
+	],
 	n_to NovaProspektLine,
 	e_to TurnstileToWaitingRoom,
 	has light;
+
+Nearby DepartureArrivalBoard "departure and arrival boards",
+	with name "departure" "and" "arrival" "board" "boards",
+	description "Boards showing departures and arrival times for trains to and from various locations.
+	It looks kind of faded, like everything else around here.",
+	has static pluralname;
 
 Nearby PacingCitizen "man pacing back and forth, talking to himself",
 	class LimitedTalker,
@@ -208,7 +224,7 @@ Nearby DontDrinkTheWaterCitizen "man sitting on a bench, looking confused",
 
 Nearby VendingMachine "vending machine",
 	with name "vending" "machine" "Dr" "Breens" "Private" "Reserve",
-	with description "a vending machine labelled ~Dr Breen's Private Reserve~.",
+	with description "a vending machine labelled ~Dr>Breens Private Reserve~.",
 	has static;
 
 Nearby AnnoyedCitizen "annoyed looking man sitting on a bench",
@@ -259,81 +275,77 @@ Object NovaProspektLine "Line to Nova Prospekt Platform",
 			"The civil protection officer opens the door and forces the citizen inside.^";
 		}
 	],
-	n_to [;
-		if (NovaProspektGate hasnt locked) {
-			give NovaProspektGate locked;
-			print "The gate beeps and locks itself before you can enter. The camera above the gate swivels to look at you.^";
-			print "A civil protection officer states, ";
-			style bold;
-			print "~Don't move.~^";
-			style roman;
-			give InterrogationHallwayDoor ~locked;
-			give InterrogationHallwayDoor open;
-			print "The security hallway door opens and an officer inside the hallway points at you.";
-			"~You, citizen! Come with me.~^";
-		}
-		return NovaProspektGate;
-	],
+	n_to NovaProspektGate,
 	e_to InterrogationHallwayDoor,
 	has light;
 
 Nearby NovaProspektGate "gate to Nova Prospekt platform",
 	with name "gate" "to" "Nova" "Prospekt" "platform",
-	description "a gate with a sign labelled ~Nova Prospekt~",
-	after [;
+	description [;
+		print "This gate has a sign labelled ~Nova Prospekt~ by it. ";
+		if (self has locked) {
+			"The gate is locked.";
+		}
+		"The gate is open.";
+	],
+	before [;
+		Enter:
+			return self.door_to();
 		Open:
-			NovaProspektLine.n_to();
+			if (self has open) {
+				"The gate is already open.";
+			}
+			"The gate is locked.";
 	],
 	door_to [;
-		return NovaProspektPlatform;
-	],
-	door_dir [;
-		! this should never be reachable, but just in case
-		return NovaProspektPlatform;
-	],
-	has door openable lockable;
-
-Nearby Camera "security camera",
-	with name "security" "camera",
-	with description [;
-		print "A security camera mounted to the wall, ";
-		if (self has targeting_player)
-			"focused on you.";
-		"beeping every few seconds and swivelling from side to side.";
-	],
-	after [;
-		Examine:
-			if (self hasnt targeting_player) {
-				give self targeting_player;
-				"The camera swivels to look at you.^";
+		if (self hasnt locked) {
+			give NovaProspektGate locked;
+			print "The gate shuts and locks itself before you can enter. ";
+			if (Camera hasnt targeting_player) {
+				give Camera targeting_player;
+				print "The security camera swivels to look at you and takes your picture.^";
+			} else {
+				print "The security camera takes your picture.^";
 			}
+			print "The civil protection officer states, ";
+			style bold;
+			print "~Don't move.~^";
+			style roman;
+			give InterrogationHallwayDoor ~locked;
+			give InterrogationHallwayDoor open;
+			"The security hallway door opens and an officer inside the hallway points at you and says ~You, citizen! Come with me.~^";
+		}
+		"You cannot pass through the gate, it is closed and locked.";
 	],
-	found_in NovaProspektLine,
-	has static;
+	door_dir NovaProspektPlatform,
+	has door open lockable;
 
 Nearby InterrogationHallwayDoor "door"
+	class LocationDoor,
 	with name "door" "to" "interrogation" "hallway",
-	description "a door with a sign labelled ~Security~",
+	description "This door with a sign labelled ~Security~. You get the feeling that people who go through it don't usually come back.",
+	before [;
+		Enter:
+			print "(going through the door to the interrogation hallway)^";
+			return self.door_to();
+	],
 	door_to [;
-		if (self has locked) {
-			"You can't go through the door, it's locked.";
-		}
 		if (location == InterrogationHallway)
 			return NovaProspektLine;
 		return InterrogationHallway;
 	],
 	door_dir [;
-		if (self has locked) {
-			"You can't go through the door, it's locked.";
-		}
+		! if (self has locked) {
+		! 	"You can't go through the door, it's locked.";
+		! }
 		if (location == InterrogationHallway)
 			return NovaProspektLine;
 		return InterrogationHallway;
 	],
-	has door openable lockable locked;
+	has door lockable locked;
 
 ! ----------------------------------------------------------------------------
-! Interrogation Hallway and Barnie/Dr. Kleiner cutscene
+! Interrogation Hallway and Barnie/Dr. Kleiner conversation
 ! ----------------------------------------------------------------------------
 
 Object InterrogationHallway "Hallway to interrogation rooms",
@@ -344,21 +356,27 @@ Object InterrogationHallway "Hallway to interrogation rooms",
 		"The door clicks behind you. The civil protection officer enters the door to the east and beckons you to follow him.^";
 	],
 	w_to InterrogationHallwayDoor,
-	n_to [;
-		if (InterrogationDoorN hasnt locked) {
-			give InterrogationDoorN locked;
-			"Through the viewing window of the door, you see a man sitting in an interrogation chair and a civil protection
-			officer through the window of the door.^^
-			You overhear the citizen indignantly says ~This must be a mistake. I got a standard relocation coupon, just like everybody else.~^^
-			Before you can respond, the officer closes the viewing window.";
-		}
-	],
+	n_to InterrogationDoorN,
 	e_to InterrogationDoorE,
 	has light;
 
 Nearby InterrogationDoorN "door to interrogation room 1",
 	with name "door" "to" "interrogation" "room" "1" "north",
-	description "a door with a sign labelled ~Interrogation Room 1~",
+	description [;
+		print "This door has a sign labelled ~Interrogation Room 1~.";
+		self.n_to();
+	],
+	door_to [;
+		if (self hasnt locked) {
+			give self ~open;
+			give self locked;
+			"Through the viewing window of the door, you see a man sitting in an interrogation chair and a civil protection
+			officer through the window of the door.^^
+			The citizen indignantly says, ~This must be a mistake. I got a standard relocation coupon, just like everybody else.~^^
+			The officer notices you looking in, and shuts the viewing window.";
+		}
+		return InterrogationRoom1;
+	],
 	door_dir [;
 		return InterrogationRoom1;
 	],
@@ -367,30 +385,268 @@ Nearby InterrogationDoorN "door to interrogation room 1",
 Nearby InterrogationDoorE "door to interrogation room 2",
 	with name "door" "to" "interrogation" "room" "2" "east",
 	description "a door with a small viewing window and a sign labelled ~Interrogation Room 2~",
-	door_to InterrogationRoom2,
-	door_dir [;
-		return InterrogationRoom2;
+	door_to [;
+		if(location == InterrogationHallway) return InterrogationRoom2;
+		return InterrogationHallway;
 	],
-	has door openable lockable;
-
-Object InterrogationRoom1 "Interrogation Room 1",
-	with name "interrogation" "room" "1",
-	description "not reachable",
-	has light;
+	door_dir [;
+		return self.door_to();
+	],
+	found_in InterrogationHallway InterrogationRoom2,
+	has door openable lockable open;
 
 Object InterrogationRoom2 "Interrogation Room 2",
-	with name "interrogation" "room" "2",
-	description "This room is lit by a single overhead lamp. There is a chair bolted to the floor in the center of the room,
-	and a one-way mirror on the wall.",
+	with name "interrogation" "room" "2" "east",
+	description [;
+		print "This room is lit by a single overhead lamp. ";
+		if (self hasnt enclosed) {
+			"Someone is banging on the other side of the door, and Barney is holding it closed. You should probably leave.";
+		}
+	],
+	each_turn [;
+		if(self.danger_turn > 0) {
+			new_line;
+			! print "each_turn: danger turns = ", self.danger_turn, "^";
+			if (turns + 2 == self.danger_turn) {
+				"The banging gets louder.^Barney looks at you and shouts, ~Hurry up, Gordon! Get out of here!~^";
+			} else if (turns + 1 == self.danger_turn) {
+				"The banging on the door gets even louder.^Barney shouts, ~I can't hold them for much longer!~^";
+			} else if (turns >= self.danger_turn) {
+				deadflag = -2;
+				"The door bursts open, knocking Barney aside.
+				A squad of civil protection officers rush in with their guns drawn, and open fire, filling you with bullets.^";
+			}
+		}
+	],
+	after [;
+		if (self has enclosed) {
+			if (self hasnt visited) {
+				<<Look>>;
+			}
+			remove BatonCP1;
+			print "^As you enter the room, the stationed civil protection officer asks the one you followed, ";
+			style bold;
+			print "~You want any help with this one?~^";
+			style roman;
+			print "He replies, ~No, I'm good~, and the first officer leaves the room, closing the door behind him.^";
+			print "The officer who brought you in walks to the communications computer and types something in. The two cameras
+				in the room deactivate as the officer chuckles to himself and says, ~Yeah, I'm gonna need me some privacy for this.~^^";
+				remove TwoSecCams;
+				Pause();
+			print "He turns to you and says, ~Now...~ and pulls off his helmet. ~About that beer I owed ya. It's me Gordon! Barney, from 
+				Black Mesa. Hey, sorry for the scare, I had to put on a show for the cameras.
+				I've been working undercover with Civil Protection. I can't take too long, or they'll get suspicious. I'm way behind on my
+				beating quota.~^
+				A familiar face appears on the computer screen, Dr. Kleiner, one of the scientists from Black Mesa.
+				~Yes, Barney, what is it? I'm in the middle of a critical test.~^
+				~Sorry Doc, but look who's here.~ He steps aside.^
+				~Great Scott! Gordon Freeman! I expected more warning.~^
+				~Yeah, you and me both, Doc. He was about to board the express to Nova Prospekt!~^
+				~Well, Barney, what do you intend?~^
+				~I'm thinking, I'm thinking!~^";
+			Pause();
+			print "~Alyx is around here...somewhere. She would have a better idea of how to get him here.~^
+				~Well, as long as he stays away from checkpoints, we should be okay.
+				Listen, I gotta go Doc, we're taking enough chances as it is.~^
+				~Very well. And eh, Gordon? Good to see you!~^
+				The screen goes blank and Barney turns to you.
+				~Okay, Gordon, you're gonna have to make your own way to Dr. Kleiner's Lab.~^^
+				You hear someone banging on the entry door from the other side.
+				~Man, that's what I was afraid of.~ Barney rushes to the far door and opens it for you.^
+				~Get in here, Gordon, before you blow my cover!~^";
+			give self ~enclosed;
+			give BarneyDoor ~locked;
+			give BarneyDoor open;
+			give InterrogationDoorE ~open;
+			give InterrogationDoorE locked;
+			self.danger_turn = turns + 4;
+			give self volatile; ! LookRoutine prevents turns from incrementing on look in non-volatile areas
+			rtrue;
+		}
+	],
+	n_to BarneyDoor,
+	s_to InterrogationDoorE,
+	danger_turn 0,
+	has light enclosed;
+
+Nearby TwoSecCams "two security cameras",
+	with name "two" "security" "cameras" "camera",
+	with description "Two security cameras mounted to the wall, focused on the interrogation chair.",
+	has static;
+
+Nearby InterrogationChair "chair bolted to the floor in the center of the room",
+	with name "chair" "bolted" "to" "the" "floor",
+	with description "a chair bolted to the floor in the center of the room, with restraints on the armrests",
+	has static;
+
+Nearby BarneyDoor "storage room door",
+	with name "storage" "room" "door",
+	description "Barney is holding the door open, urging you to enter.",
+	door_to [;
+		if (location == InterrogationRoom2) {
+			return StorageRoomFloor;
+		}
+		return InterrogationRoom2;
+	],
+	door_dir [;
+		if (location == InterrogationRoom2) {
+			return StorageRoomFloor;
+		}
+		return InterrogationRoom2;
+	],
+	before [;
+		Enter:
+			return self.door_to();
+	],
+	found_in InterrogationRoom2 StorageRoomFloor,
+	has door openable locked;
+
+
+! ----------------------------------------------------------------------------
+! Storage room, platform, and small courtyard outside
+! ---------------------------------------------------------------------------
+
+Object StorageRoomFloor "Storage Room",
+	with name "storage" "room",
+	description "a small storage room with a few crates and a ladder leading up to a platform and a window",
+	initial [;
+		print "(entering the storage room)^
+			Barney says ~Pile up some stuff to get through that window, and keep going until you're in the plaza.
+			I'll meet up with you later.~^";
+		score++;
+		give BarneyDoor ~open;
+	],
+	s_to BarneyDoor,
+	u_to StorageRoomLadder,
+	has light;
+
+Nearby StorageRoomLadder "ladder",
+	with name "ladder" "to" "the" "platform",
+	description "a ladder leading up to a platform with a window",
+	door_dir [;
+		if (location == StorageRoomFloor) {
+			return StorageRoomPlatform;
+		}
+		return StorageRoomFloor;
+	],
+	door_to [;
+		if (location == StorageRoomFloor) {
+			print "(climbing up the ladder)^";
+			return StorageRoomPlatform;
+		}
+		print "(climbing down the ladder)^";
+		return StorageRoomFloor;
+	],
+	found_in StorageRoomFloor StorageRoomPlatform,
+	has static door open;
+
+Object StorageRoomPlatform "Storage Room Platform",
+	with name "storage" "room" "platform",
+	description "You are on a platform with a window. You see a small courtyard outside the window.",
+	down_to StorageRoomLadder,
+	out_to StorageRoomWindow,
+	has light;
+
+Nearby LargeWoodenBox "large wooden crate",
+	with name "big" "large" "wooden" "crate",
+	with description "a large wooden crate",
+	has supporter;
+
+Nearby MediumWoodenBox "wooden box",
+	with name "wooden" "box",
+	with description "a medium-sized wooden box";
+
+Nearby StorageRoomWindow "window to a small courtyard",
+	with name "window" "to" "the" "courtyard",
+	description "a window overlooking a small courtyard",
+	before [;
+		Enter:
+			return self.door_to();
+	],
+	door_to [;
+		! player must have the boxes stacked up to reach the window
+		if (parent(LargeWoodenBox) == MediumWoodenBox || parent(MediumWoodenBox) == LargeWoodenBox) {
+			print "(climbing out the window)^";
+			PlayerTo(SmallCourtyardOutsideStorageRoom);
+			rtrue;
+		}
+		"You can't reach the window from here. You need to stack some boxes up to reach it.";
+	],
+	has static door open;
+
+Object SmallCourtyardOutsideStorageRoom "Small Courtyard",
+	with description "You are in a small courtyard.",
 	has light;
 
 ! ----------------------------------------------------------------------------
-! Nova Prospekt Platform (unreachable)
+! Reusable objects
+! ----------------------------------------------------------------------------
+
+Object BreenCastWelcome "BreenCast",
+	class BreenCast,
+	with name "large" "display" "showing" "Dr" "Breen" "breencast",
+	watch_breencast [;
+		"The televised Dr Breen says, ~Welcome. Welcome to City 17.^
+		You have chosen, or been chosen, to relocate to one of our finest remaining urban centers.
+		I thought so much of City 17 that I elected to establish my administration here, in the citadel so thoughtfully
+		provided by Our Benefactors. I have been proud to call City 17 my home. And so, whether you are here to stay,
+		or passing through on your way to parts unknown, welcome to City 17.^
+		It's safer here.~";
+	],
+	found_in City17TrainStation City17TrainStationWaitingRoom NovaProspektLine;
+
+
+Object Camera "security camera",
+	with name "security" "camera",
+	with description [;
+		print "A security camera with a ";
+		if (self has targeting_player)
+			print "red";
+		else
+			print "green";
+		print " indicator light, mounted to the wall, ";
+		if (self has targeting_player)
+			"focused on you.";
+		"beeping every few seconds and swivelling from side to side.";
+	],
+	after [;
+		Examine:
+			if (self hasnt targeting_player) {
+				give self targeting_player;
+				"The camera swivels to look at you, and its light turns red.";
+			}
+	],
+	found_in NovaProspektLine,
+	has static;
+
+Object BatonCP1 "civil protection unit",
+	class CivilProtectionUnit,
+	with name "civil" "protection" "unit" "cp" "cop",
+	description "This is a member of Civil Protection. He is holding a stun baton. You probably shouldn't piss him off.",
+	life [;
+		Attack: "With what, your bare hands?";
+	],
+	found_in NovaProspektLine,
+	has animate;
+
+Object CombineCommsComputer "Combine communications computer",
+	with name "combine" "communications" "computer" "computer",
+	description "an advanced looking computer with a large display mounted to the wall",
+	found_in InterrogationRoom2,
+	has static;
+
+! ----------------------------------------------------------------------------
+! Unreachable locations
 ! ----------------------------------------------------------------------------
 
 Object NovaProspektPlatform "Nova Prospekt Train Platform",
-	with description "This area is supposed to be unreachable. If you are here, I screwed up.",
+	with description InvalidAreaDescription,
 	has light;
+
+Object InterrogationRoom1 "Interrogation Room 1",
+	with description InvalidAreaDescription,
+	has light;
+
 
 ! Object City17TrainStationVolatileTest "Danger zone test",
 ! 	with description "testing agitated CPs",
