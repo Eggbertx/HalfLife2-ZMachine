@@ -22,61 +22,15 @@ Class LimitedTalker
 	talk3_speech 0,
 	default_response 0,
 	talked false,
-	before [;
-		Talk,Ask:
-			if (self.talk_speech ~= 0) {
-				PrintOrRun(self, talk_speech);
-				self.talk_speech = 0;
-				talks++;
-				self.talked = true;
-			} else if (self.talk2_speech ~= 0) {
-				PrintOrRun(self, talk2_speech);
-				self.talk2_speech = 0;
-			} else if (self.talk3_speech ~= 0) {
-				PrintOrRun(self, talk3_speech);
-				self.talk3_speech = 0;
-			} else if (self.default_response ~= 0) {
-				PrintOrRun(self, default_response);
-			} else {
-				Pronoun(self, "doesn't", "don't");
-				print "have much ";
-				if (self.talked) print "else ";
-				"to say.";
-			}
-			if (talks >= 2 && location == PointInsertionTrainCar) {
-				give location ~enclosed; ! allows the player to exit the train car
-				remove DidntSeeYouGetOnCitizen;
-				remove RelocatedCitizen;
-				print "^";
-				Pause("The train has arrived.");
-				print "^The train comes to a halt, and the doors open. The man by the door mutters,
-					~Well, end of the line~ and gets off. The man sitting down gets up and departs as well.^
-					A robotic voice states ";
-				style bold;
-				print "~Exit the train.~^";
-				style roman;
-			}
-			rtrue;
-	],
-	says_verb 0,
 	has animate;
 
-
-Class BreenCast
-	with description "A large screen displaying the former administrator of Black Mesa, Dr. Breen. You can watch or listen to it.",
-	watch_breencast 0,
-	before [;
-		Watch,Listen:
-			if (self.watch_breencast == 0) {
-				! this shouldn't normally happen, but just in case
-				"The display appears to be nonfunctional.";
-			}
-			PrintOrRun(self, watch_breencast);
-			rtrue;
-	],
+Class Screen
+	with watch_text 0,
 	has static;
 
-
+Class Breencast
+	class Screen,
+	with description "A large screen displaying the former administrator of Black Mesa, Dr. Breen. You can watch or listen to it.";
 
 Class CivilProtectionUnit
 	with name "civil" "protection" "officer" "cp" "cop",
@@ -124,14 +78,11 @@ Class LocationDoor
 ! ----------------------------------------------------------------------------
 
 [ Pause text dummy;
-	style roman;
-	print "[";
 	if (text == 0) {
-		print "Press a key to continue";
-	} else {
-		print (string) text;
+		text = "Press a key to continue";
 	}
-	print "]";
+	style roman;
+	print "[", (string)text, "]";
 	@read_char 1 dummy;
 	print "^^";
 ];
@@ -321,22 +272,67 @@ Attribute targeting_player; ! for NPCs and objects that are focused on or attack
 ! Verb subroutines
 ! ----------------------------------------------------------------------------
 
-[ TalkSub o;
-	if (o == 0) {
-		"You get no response.";
+[ TalkSub;
+	if (noun ofclass LimitedTalker) {
+		if (noun.talk_speech ~= 0) {
+			PrintOrRun(noun, talk_speech);
+			noun.talk_speech = 0;
+			talks++;
+			noun.talked = true;
+		} else if (noun.talk2_speech ~= 0) {
+			PrintOrRun(noun, talk2_speech);
+			noun.talk2_speech = 0;
+		} else if (noun.talk3_speech ~= 0) {
+			PrintOrRun(noun, talk3_speech);
+			noun.talk3_speech = 0;
+		} else if (noun.default_response ~= 0) {
+			PrintOrRun(noun, default_response);
+		} else {
+			Pronoun(noun, "doesn't", "don't");
+			print "have much ";
+			if (noun.talked) print "else ";
+			"to say.";
+		}
+		if (talks >= 2 && location == PointInsertionTrainCar) {
+			give location ~enclosed;
+			remove DidntSeeYouGetOnCitizen;
+			remove RelocatedCitizen;
+			print "^";
+			Pause("The train has arrived.");
+			print "^The train comes to a halt, and the doors open. The man by the door mutters,
+				~Well, end of the line~ and gets off. The man sitting down gets up and departs as well.^
+				A robotic voice states ";
+			style bold;
+			print "~Exit the train.~^";
+			style roman;
+		}
+		rtrue;
 	}
-	if (o ofclass LimitedTalker) {
-		! handled in the before property of LimitedTalker
-		rfalse;
-	}
-	"It doesn't have much to say.";
+	"You get no response.";
 ];
 
-[ WatchSub o;
-	if (o ofclass BreenCast) {
+[ WatchScreen;
+	if (noun.watch_text == 0) {
+		"The display appears to be nonfunctional.";
+	}
+	PrintOrRun(noun, watch_text);
+	rtrue;
+];
+
+[ WatchSub;
+	if (noun ofclass Screen) {
+		WatchScreen();
 		rtrue;
 	}
 	"It's rude to stare.";
+];
+
+[ ListenSub;
+	if (noun ofclass Screen) {
+		WatchScreen();
+		rtrue;
+	}
+	"You hear nothing unexpected.";
 ];
 
 [ CheckHealthSub;
@@ -396,38 +392,43 @@ Attribute targeting_player; ! for NPCs and objects that are focused on or attack
 ! ----------------------------------------------------------------------------
 
 Include "Grammar";
-! Include "./ExpertGrammar";
 
-Verb 'activate' 'use'
+Verb "activate" "use"
 	* noun -> Activate;
 
-Verb 'talk' 't//'
-	* 'to' noun -> Talk
+Verb "talk" "to"
+	* "to" noun -> Talk
 	* noun      -> Talk;
 
-! used for breencasts, instead of behaving the same as examine
-Extend 'watch' replace
-	* noun -> Watch;
+! used for screens, instead of behaving the same as examine
+Extend "watch" replace
+	* noun -> Watch
+	* "the" noun -> Watch;
+
+Extend "listen" replace
+	* -> Listen
+	* noun -> Listen
+	* "to" noun -> Listen;
 
 ! copying and extending this from the standard library version to add look <noun> for brevity
-Extend 'look' replace
+Extend "look" replace
 	*                                           -> Look
 	* noun=ADirection                           -> LookDirection
 	* noun                                      -> Examine
-	* 'at' noun                                 -> LookDirection
-	* 'inside'/'in'/'into'/'through'/'on' noun  -> Search
-	* 'under' noun                              -> LookUnder
-	* 'up' topic 'in' noun                      -> Consult
-	* 'to' noun=ADirection                      -> LookDirection;
+	* "at" noun                                 -> LookDirection
+	* "inside"/"in"/"into"/"through"/"on" noun  -> Search
+	* "under" noun                              -> LookUnder
+	* "up" topic "in" noun                      -> Consult
+	* "to" noun=ADirection                      -> LookDirection;
 
-Verb 'stack'
-	* multiexcept 'on'/'onto' noun -> PutOn;
+Verb "stack"
+	* multiexcept "on"/"onto" noun -> PutOn;
 
-Verb 'help' 'h//'
+Verb "help" "h//"
 	* -> Help;
 
-Verb 'status' 'health'
+Verb "status" "health"
 	* -> CheckHealth;
 
-Verb 'xyzzy' 'plugh' 'plover'
+Verb "xyzzy" "plugh" "plover"
 	* -> Nonsense;

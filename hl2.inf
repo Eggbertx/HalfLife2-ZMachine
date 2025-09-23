@@ -8,19 +8,17 @@ Constant Headline
 Constant MAX_SCORE 100;
 Release 1;
 
+Replace ListenSub;
+
 Include "Parser";
 Include "VerbLib";
 Include "./abbreviations";
 Include "./hl2util";
 
-!-------------------------------------------------------------------------------
-! Initialization
-!-------------------------------------------------------------------------------
-
 [ Initialise;
 	#ifdef STARTLOC;
 		switch (STARTLOC) {
-			1: location = Intro;
+			1: GManCustscene();
 			2: location = PointInsertionTrainCar;
 			3: location = City17TrainStation;
 			4: location = City17TrainStationWaitingRoom;
@@ -41,36 +39,30 @@ Include "./hl2util";
 			InterrogationRoom2.danger_turn = turns + 4;
 		#endif;
 	#ifnot;
-		location = Intro;
+		GManCustscene();
 	#endif;
 ];
 
+[ GManCustscene;
+	Banner();
+	print "^^You don't know where you are, or what you were doing. You are aware that
+		you are in a black void, but you can't remember how you got here.^^
+		You start to realize that you are in the presence of someone you have worked with
+		(or rather, for), known as the ~G-Man~.^^";
+	Pause();
+	print "He speaks to you with an odd cadence, ~Rise and shine, Mr Freeman, rise
+		and...shine. Not that I wish to imply you have been sleeping on...the job...
+		No one is more deserving of a rest. And all the effort in the world would have gone
+		to waste, until...well, let's just say your hour has...come again~. He pauses for
+		a moment.^^";
+	Pause();
+	print "~The right man in the wrong place can make all the difference in the world...
+		So wake up Mr. Freeman... Wake up and smell the ashes.~^^
+		He disappears, or rather, you reappear.^^";
+	Pause();
+	PlayerTo(PointInsertionTrainCar);
+];
 
-! ----------------------------------------------------------------------------
-! Intro (G-Man cutscene)
-! ----------------------------------------------------------------------------
-
-Object Intro "Half Life 2 Intro",
-	with description "",
-	after [;
-		print "You don't know where you are, or what you were doing. You are aware that
-			you are in a black void, but you can't remember how you got here.^^
-			You start to realize that you are in the presence of someone you have worked with
-			(or rather, for), known as the ~G-Man~.^^";
-		Pause();
-		print "He speaks to you with an odd cadence, ~Rise and shine, Mr Freeman, rise
-			and...shine. Not that I wish to imply you have been sleeping on...the job...
-			No one is more deserving of a rest. And all the effort in the world would have gone
-			to waste, until...well, let's just say your hour has...come again~. He pauses for
-			a moment.^^";
-		Pause();
-		print "~The right man in the wrong place can make all the difference in the world...
-			So wake up Mr. Freeman... Wake up and smell the ashes.~^^
-			He disappears, or rather, you reappear.^^";
-		Pause();
-		PlayerTo(PointInsertionTrainCar);
-	],
-	has enclosed;
 
 ! ----------------------------------------------------------------------------
 ! Point Insertion Train Car and children
@@ -101,7 +93,7 @@ Nearby DidntSeeYouGetOnCitizen "man standing by the doors",
 	with name "man" "standing" "up" "near" "by" "the" "door" "doors",
 	description "a man wearing denim coveralls and carrying a suitcase, standing by the train car doors",
 	talk_speech "He looks at you and says, ~I didn't see you get on.~",
-	talk2_speech "He mutters, ~This is my third transfer this year.~",
+	talk2_speech "He says, ~This is my third transfer this year.~",
 	has male;
 
 Nearby RelocatedCitizen "man sitting on the seat",
@@ -110,6 +102,7 @@ Nearby RelocatedCitizen "man sitting on the seat",
 	description "a man wearing denim coveralls, sitting on the seat holding a suitcase",
 	talk_speech "He says, ~No matter how many times I get relocated, I never get used to it.~",
 	has male;
+
 
 ! ----------------------------------------------------------------------------
 ! City 17 Train Station and children
@@ -148,7 +141,6 @@ Nearby AreYouTheOnlyOnes "woman anxiously standing on the other side of the gate
 	talk2_speech "She says, ~Overwatch stopped our train in the woods and took my husband for questioning.
 		They said he'd be on the next train. I'm not sure when that was...They're being nice, though, letting me wait for him.~",
 	has female;
-
 
 Nearby MoveAway "civil protection officer",
 	class CivilProtectionUnit,
@@ -318,31 +310,24 @@ Nearby NovaProspektGate "gate to Nova Prospekt platform",
 		"You cannot pass through the gate, it is closed and locked.";
 	],
 	door_dir NovaProspektPlatform,
-	has door open lockable;
+	has static door open lockable;
 
-Nearby InterrogationHallwayDoor "door"
+Object InterrogationHallwayDoor "door"
 	class LocationDoor,
 	with name "door" "to" "interrogation" "hallway",
 	description "This door with a sign labelled ~Security~. You get the feeling that people who go through it don't usually come back.",
-	before [;
-		Enter:
-			print "(going through the door to the interrogation hallway)^";
-			return self.door_to();
-	],
 	door_to [;
 		if (location == InterrogationHallway)
 			return NovaProspektLine;
 		return InterrogationHallway;
 	],
 	door_dir [;
-		! if (self has locked) {
-		! 	"You can't go through the door, it's locked.";
-		! }
 		if (location == InterrogationHallway)
-			return NovaProspektLine;
-		return InterrogationHallway;
+			return w_to;
+		return e_to;
 	],
-	has door lockable locked;
+	found_in InterrogationHallway NovaProspektLine,
+	has static door lockable locked;
 
 ! ----------------------------------------------------------------------------
 ! Interrogation Hallway and Barnie/Dr. Kleiner conversation
@@ -352,6 +337,7 @@ Object InterrogationHallway "Hallway to interrogation rooms",
 	with name "hallway" "to" "interrogation" "rooms",
 	description "a dimly lit hallway with two interrogation room doors",
 	initial [;
+		give InterrogationHallwayDoor ~open;
 		give InterrogationHallwayDoor locked;
 		"The door clicks behind you. The civil protection officer enters the door to the east and beckons you to follow him.^";
 	],
@@ -364,7 +350,7 @@ Nearby InterrogationDoorN "door to interrogation room 1",
 	with name "door" "to" "interrogation" "room" "1" "north",
 	description [;
 		print "This door has a sign labelled ~Interrogation Room 1~.";
-		self.n_to();
+		self.door_to();
 	],
 	door_to [;
 		if (self hasnt locked) {
@@ -378,7 +364,7 @@ Nearby InterrogationDoorN "door to interrogation room 1",
 		return InterrogationRoom1;
 	],
 	door_dir [;
-		return InterrogationRoom1;
+		return n_to;
 	],
 	has door openable lockable;
 
@@ -390,7 +376,8 @@ Nearby InterrogationDoorE "door to interrogation room 2",
 		return InterrogationHallway;
 	],
 	door_dir [;
-		return self.door_to();
+		if (location == InterrogationRoom2) return w_to;
+		return e_to;
 	],
 	found_in InterrogationHallway InterrogationRoom2,
 	has door openable lockable open;
@@ -420,9 +407,6 @@ Object InterrogationRoom2 "Interrogation Room 2",
 	],
 	after [;
 		if (self has enclosed) {
-			if (self hasnt visited) {
-				<<Look>>;
-			}
 			remove BatonCP1;
 			print "^As you enter the room, the stationed civil protection officer asks the one you followed, ";
 			style bold;
@@ -490,13 +474,9 @@ Nearby BarneyDoor "storage room door",
 	],
 	door_dir [;
 		if (location == InterrogationRoom2) {
-			return StorageRoomFloor;
+			return n_to;
 		}
-		return InterrogationRoom2;
-	],
-	before [;
-		Enter:
-			return self.door_to();
+		return s_to;
 	],
 	found_in InterrogationRoom2 StorageRoomFloor,
 	has door openable locked;
@@ -559,10 +539,6 @@ Nearby MediumWoodenBox "wooden box",
 Nearby StorageRoomWindow "window to a small courtyard",
 	with name "window" "to" "the" "courtyard",
 	description "a window overlooking a small courtyard",
-	before [;
-		Enter:
-			return self.door_to();
-	],
 	door_to [;
 		! player must have the boxes stacked up to reach the window
 		if (parent(LargeWoodenBox) == MediumWoodenBox || parent(MediumWoodenBox) == LargeWoodenBox) {
@@ -571,6 +547,11 @@ Nearby StorageRoomWindow "window to a small courtyard",
 			rtrue;
 		}
 		"You can't reach the window from here. You need to stack some boxes up to reach it.";
+	],
+	door_dir [;
+		if (location == SmallCourtyardOutsideStorageRoom)
+			return w_to;
+		return out_to;
 	],
 	has static door open;
 
@@ -582,17 +563,15 @@ Object SmallCourtyardOutsideStorageRoom "Small Courtyard",
 ! Reusable objects
 ! ----------------------------------------------------------------------------
 
-Object BreenCastWelcome "BreenCast",
-	class BreenCast,
+Object BreencastWelcome "Breencast",
+	class Breencast,
 	with name "large" "display" "showing" "Dr" "Breen" "breencast",
-	watch_breencast [;
-		"The televised Dr Breen says, ~Welcome. Welcome to City 17.^
+	watch_text "The televised Dr Breen says, ~Welcome. Welcome to City 17.^
 		You have chosen, or been chosen, to relocate to one of our finest remaining urban centers.
 		I thought so much of City 17 that I elected to establish my administration here, in the citadel so thoughtfully
 		provided by Our Benefactors. I have been proud to call City 17 my home. And so, whether you are here to stay,
 		or passing through on your way to parts unknown, welcome to City 17.^
-		It's safer here.~";
-	],
+		It's safer here.~",
 	found_in City17TrainStation City17TrainStationWaitingRoom NovaProspektLine;
 
 
