@@ -9,6 +9,7 @@ Constant MAX_SCORE 100;
 Release 1;
 
 Replace ListenSub;
+Replace DrawStatusLine;
 
 Include "Parser";
 Include "VerbLib";
@@ -26,6 +27,10 @@ Include "./hl2util";
 			6: location = InterrogationHallway;
 			7: location = InterrogationRoom2;
 			8: location = StorageRoomFloor;
+			9: location = StorageRoomPlatform;
+			10: location = SmallCourtyardOutsideStorageRoom;
+			11: location = MainHallAnteroom;
+			12: location = TrainStationMainHall;
 			default:
 				print "Invalid STARTLOC value ", STARTLOC, "^";
 				quit;
@@ -41,6 +46,7 @@ Include "./hl2util";
 	#ifnot;
 		GManCustscene();
 	#endif;
+	return 2;
 ];
 
 [ GManCustscene;
@@ -60,7 +66,8 @@ Include "./hl2util";
 		So wake up Mr. Freeman... Wake up and smell the ashes.~^^
 		He disappears, or rather, you reappear.^^";
 	Pause();
-	PlayerTo(PointInsertionTrainCar);
+	! PlayerTo(PointInsertionTrainCar);
+	location = PointInsertionTrainCar;
 ];
 
 
@@ -131,7 +138,7 @@ Object -> TurnstileToWaitingRoom "turnstile to the waiting room",
 			print_ret (The)self, " is not something you can close.";
 	],
 	found_in City17TrainStation City17TrainStationWaitingRoom,
-	has door open;
+	has open;
 
 Nearby AreYouTheOnlyOnes "woman anxiously standing on the other side of the gate",
 	class LimitedTalker,
@@ -272,6 +279,7 @@ Object NovaProspektLine "Line to Nova Prospekt Platform",
 	has light;
 
 Nearby NovaProspektGate "gate to Nova Prospekt platform",
+	class LocationDoor
 	with name "gate" "to" "Nova" "Prospekt" "platform",
 	description [;
 		print "This gate has a sign labelled ~Nova Prospekt~ by it. ";
@@ -309,8 +317,7 @@ Nearby NovaProspektGate "gate to Nova Prospekt platform",
 		}
 		"You cannot pass through the gate, it is closed and locked.";
 	],
-	door_dir NovaProspektPlatform,
-	has static door open lockable;
+	has open;
 
 Object InterrogationHallwayDoor "door"
 	class LocationDoor,
@@ -327,7 +334,7 @@ Object InterrogationHallwayDoor "door"
 		return e_to;
 	],
 	found_in InterrogationHallway NovaProspektLine,
-	has static door lockable locked;
+	has locked;
 
 ! ----------------------------------------------------------------------------
 ! Interrogation Hallway and Barnie/Dr. Kleiner conversation
@@ -339,7 +346,8 @@ Object InterrogationHallway "Hallway to interrogation rooms",
 	initial [;
 		give InterrogationHallwayDoor ~open;
 		give InterrogationHallwayDoor locked;
-		"The door clicks behind you. The civil protection officer enters the door to the east and beckons you to follow him.^";
+		"After you enter and close the door behind you, you hear the door click as someone locks it.
+		The civil protection officer enters the door to the east and beckons you to follow him.^";
 	],
 	w_to InterrogationHallwayDoor,
 	n_to InterrogationDoorN,
@@ -349,28 +357,33 @@ Object InterrogationHallway "Hallway to interrogation rooms",
 Nearby InterrogationDoorN "door to interrogation room 1",
 	with name "door" "to" "interrogation" "room" "1" "north",
 	description [;
-		print "This door has a sign labelled ~Interrogation Room 1~.";
-		self.door_to();
-	],
-	door_to [;
-		if (self hasnt locked) {
-			give self ~open;
-			give self locked;
-			"Through the viewing window of the door, you see a man sitting in an interrogation chair and a civil protection
-			officer through the window of the door.^^
-			The citizen indignantly says, ~This must be a mistake. I got a standard relocation coupon, just like everybody else.~^^
-			The officer notices you looking in, and shuts the viewing window.";
+		print "This door has a small viewing window and a sign labelled ~Interrogation Room 1~.";
+		if (self.viewing_window ~= 0) {
+			print "^";
+			<<Open self>>;
 		}
-		return InterrogationRoom1;
+	],
+	before [;
+		Open,Enter:
+			if(self.viewing_window ~= 0) {
+				print (string)self.viewing_window;
+				self.viewing_window = 0;
+				rtrue;
+			}
 	],
 	door_dir [;
 		return n_to;
 	],
-	has door openable lockable;
+	viewing_window "Through the viewing window of the door, you see a man sitting in an interrogation chair and a civil protection
+		officer through the window of the door.^^
+		The citizen indignantly says, ~This must be a mistake. I got a standard relocation coupon, just like everybody else.~^^
+		The officer notices you looking in, and shuts the viewing window.",
+	has static door openable locked;
 
 Nearby InterrogationDoorE "door to interrogation room 2",
+	class LocationDoor,
 	with name "door" "to" "interrogation" "room" "2" "east",
-	description "a door with a small viewing window and a sign labelled ~Interrogation Room 2~",
+	description "This door has a small viewing window and a sign labelled ~Interrogation Room 2~",
 	door_to [;
 		if(location == InterrogationHallway) return InterrogationRoom2;
 		return InterrogationHallway;
@@ -380,7 +393,7 @@ Nearby InterrogationDoorE "door to interrogation room 2",
 		return e_to;
 	],
 	found_in InterrogationHallway InterrogationRoom2,
-	has door openable lockable open;
+	has open;
 
 Object InterrogationRoom2 "Interrogation Room 2",
 	with name "interrogation" "room" "2" "east",
@@ -455,12 +468,12 @@ Object InterrogationRoom2 "Interrogation Room 2",
 
 Nearby TwoSecCams "two security cameras",
 	with name "two" "security" "cameras" "camera",
-	with description "Two security cameras mounted to the wall, focused on the interrogation chair.",
+	with description "Two security cameras are mounted to the wall, focused on the interrogation chair.",
 	has static;
 
 Nearby InterrogationChair "chair bolted to the floor in the center of the room",
 	with name "chair" "bolted" "to" "the" "floor",
-	with description "a chair bolted to the floor in the center of the room, with restraints on the armrests",
+	with description "This is a chair that is bolted to the floor in the center of the room, with restraints on the armrests.",
 	has static;
 
 Nearby BarneyDoor "storage room door",
@@ -479,7 +492,7 @@ Nearby BarneyDoor "storage room door",
 		return s_to;
 	],
 	found_in InterrogationRoom2 StorageRoomFloor,
-	has door openable locked;
+	has static door openable;
 
 
 ! ----------------------------------------------------------------------------
@@ -490,11 +503,13 @@ Object StorageRoomFloor "Storage Room",
 	with name "storage" "room",
 	description "a small storage room with a few crates and a ladder leading up to a platform and a window",
 	initial [;
-		print "(entering the storage room)^
-			Barney says ~Pile up some stuff to get through that window, and keep going until you're in the plaza.
-			I'll meet up with you later.~^";
-		score++;
-		give BarneyDoor ~open;
+		if (self hasnt visited) {
+			print "(entering the storage room)^
+				Barney says ~Pile up some stuff to get through that window, and keep going until you're in the plaza.
+				I'll meet up with you later.~^";
+			score++;
+			give BarneyDoor ~open;
+		}
 	],
 	s_to BarneyDoor,
 	u_to StorageRoomLadder,
@@ -525,6 +540,7 @@ Object StorageRoomPlatform "Storage Room Platform",
 	description "You are on a platform with a window. You see a small courtyard outside the window.",
 	down_to StorageRoomLadder,
 	out_to StorageRoomWindow,
+	d_to StorageRoomLadder,
 	has light;
 
 Nearby LargeWoodenBox "large wooden crate",
@@ -537,26 +553,234 @@ Nearby MediumWoodenBox "wooden box",
 	with description "a medium-sized wooden box";
 
 Nearby StorageRoomWindow "window to a small courtyard",
-	with name "window" "to" "the" "courtyard",
+	with name "window",
+	short_name [;
+		if (location == SmallCourtyardOutsideStorageRoom) {
+			print "window to the storage room";
+		} else {
+			print "window to a small courtyard";
+		}
+		rtrue;
+	],
 	description "a window overlooking a small courtyard",
 	door_to [;
 		! player must have the boxes stacked up to reach the window
-		if (parent(LargeWoodenBox) == MediumWoodenBox || parent(MediumWoodenBox) == LargeWoodenBox) {
+		if (location == StorageRoomPlatform && (parent(LargeWoodenBox) == MediumWoodenBox || parent(MediumWoodenBox) == LargeWoodenBox)) {
 			print "(climbing out the window)^";
 			PlayerTo(SmallCourtyardOutsideStorageRoom);
 			rtrue;
 		}
-		"You can't reach the window from here. You need to stack some boxes up to reach it.";
+		print "You can't reach the window from here.";
+		if (location == StorageRoomPlatform)
+			" You need to stack some boxes up to reach it.";
+		rtrue;
 	],
 	door_dir [;
 		if (location == SmallCourtyardOutsideStorageRoom)
 			return w_to;
 		return out_to;
 	],
+	found_in StorageRoomPlatform SmallCourtyardOutsideStorageRoom,
 	has static door open;
 
 Object SmallCourtyardOutsideStorageRoom "Small Courtyard",
 	with description "You are in a small courtyard.",
+	initial [;
+		if (self hasnt visited) score++;
+	],
+	s_to DoorToMainHallAnteroom,
+	w_to StorageRoomWindow,
+	has light;
+
+Object DoorToMainHallAnteroom "door",
+	class LocationDoor,
+	with name "ajar" "door",
+	door_to [;
+		if (location == MainHallAnteroom) {
+			return SmallCourtyardOutsideStorageRoom;
+		}
+		return MainHallAnteroom;
+	],
+	door_dir [;
+		if (location == MainHallAnteroom) {
+			return s_to;
+		}
+		return n_to;
+	],
+	found_in SmallCourtyardOutsideStorageRoom MainHallAnteroom,
+	has ajar;
+
+! ----------------------------------------------------------------------------
+! Main hall and anteroom
+! ----------------------------------------------------------------------------
+
+Object MainHallAnteroom "Main Hall Anteroom",
+	with description [;
+		print "You are in a small room to the north of the main hall";
+		if (SodaCan notin TrashBin) {
+			print ", with a bored looking civil protection officer standing by a trash bin.";
+		}
+		".";
+	],
+	submissive [;
+		! put can in bin
+		move SodaCan to TrashBin;
+		print (The)TrashBinCop, " chuckles and says, ";
+		style bold;
+		print "~Alright, you can go.~^";
+		style roman;
+		print "He turns and walks away.";
+		score = score + 2;
+		move TrashBinCop to TrainStationMainHall;
+	],
+	defiant [;
+		! throw can at something other than the bin
+		move SodaCan to location;
+		style bold;
+		print "~Suspect, prepare to receive civil judgement.~^^";
+		style roman;
+		TrashBinCop.attack(1);
+		print " and walks away.^";
+		move TrashBinCop to TrainStationMainHall;
+	],
+	initial [;
+		if (self hasnt visited) {
+			give TrashBin ~container;
+			give TrashBin supporter;
+			move SodaCan to TrashBin;
+		}
+	],
+	before [;
+		ThrowAt:
+			! print "Throwing ", (name)noun, " at ", (the)second;
+			print "You throw ", (the)noun, " at ", (the)second, ".^";
+			if (noun == SodaCan) {
+				if (second == TrashBinCop) {
+					print "It bounces off his head. The officer activates his stun baton and says, ";
+					self.defiant();
+					score = score + 4;
+				} else if(second == TrashBin) {
+					print "It lands in the trash bin. ";
+					self.submissive();
+				} else {
+					self.defiant();
+				}
+				rtrue;
+			}
+		Take:
+			! print turns, " ", self.potc_turn, "^";
+			if (noun == SodaCan && TrashBinCop in location) {
+				self.potc_turn = 1;
+				move SodaCan to player;
+				print (The)TrashBinCop, " says, ";
+				style bold;
+				print "~Now, put it in the trash can.~^";
+				style roman;
+				if (not_holding) {
+					rfalse;
+				}
+				rtrue;
+			}
+		Drop:
+			if (noun == SodaCan && TrashBinCop in location) {
+				self.potc_turn = turns;
+				print "The officer says, ";
+				style bold;
+				print "~I said put it in the trash can.~^";
+				style roman;
+				rtrue;
+			}
+		default:
+			print "potc_turn: ", self.potc_turn, "^", "turns-potc_turn: ", (turns - self.potc_turn), "^";
+			if (TrashBinCop notin location || action == ##Help) {
+				rfalse;
+			}
+			if (action == ##Examine || action == ##Look) {
+				turns++; ! not volatile but this officer is impatient
+			}
+			switch (turns - self.potc_turn) {
+				0:
+					print "The officer says, ";
+					style bold;
+					print "~I said pick up the can.~^";
+					style roman;
+					break;
+				1:
+					! print "notin player:", SodaCan notin player;
+					print "The officer says, ";
+					style bold;
+					print "~";
+					if (SodaCan in player) {
+						print "Put it in the trash can.";
+					} else {
+						print "You knocked it over, pick it up.";
+					}
+					print "~^";
+					style roman;
+					self.before();
+					rtrue;
+				2:
+					print "The officer gets more annoyed and says, ";
+					style bold;
+					print "~Pick. Up. The can.~^";
+					style roman;
+					break;
+				3:
+					print "The officer chuckles and says, ";
+					style bold;
+					print "~Whatever. Now get out of here.~^";
+					style roman;
+					print "He turns and walks away.";
+					move TrashBinCop to TrainStationMainHall;
+			}
+
+		! rtrue;
+	],
+	s_to [;
+		if (SodaCan in TrashBin && TrashBin has container) {
+			return TrainStationMainHall;
+		}
+		return TrashBinCop.potc();
+	],
+	n_to DoorToMainHallAnteroom,
+	potc_turn 0,
+	has light;
+
+Nearby SodaCan "soda can",
+	with name "soda" "can",
+	with description "This is a can of Dr. Breen's Private Reserve.";
+
+Nearby TrashBinCop "civil protection officer",
+	class CivilProtectionUnit,
+	with description [;
+		print "This is a civil protection officer with a stun baton. He looks bored.";
+		self.potc();
+	],
+	potc [;
+		if (TrashBin hasnt supporter) {
+			rfalse;
+		}
+		MainHallAnteroom.potc_turn = 1;
+		if (action == ##Examine) {
+			print " ";
+			Pronoun(self);
+		}
+		else
+			print (The)self, " is in the way. He ";
+		print " knocks a soda can off the trash bin with his stun baton, then looks at you and says, ";
+		style bold;
+		print "~Pick up that can.~";
+		style roman;
+		move SodaCan to location;
+		give TrashBin container;
+		give TrashBin ~supporter;
+		rtrue;
+	];
+
+Object TrainStationMainHall "Main Hall",
+	with name "main" "hall" "of" "the" "train" "station",
+	description "You are in the main hall of the train station. Several citizens are lined up here for food rations.",
+	n_to MainHallAnteroom
 	has light;
 
 ! ----------------------------------------------------------------------------
@@ -574,6 +798,35 @@ Object BreencastWelcome "Breencast",
 		It's safer here.~",
 	found_in City17TrainStation City17TrainStationWaitingRoom NovaProspektLine;
 
+Object BreencastPlaza "Breencast",
+	class Breencast,
+	with name "large" "display" "showing" "Dr" "Breen" "breencast",
+	watch_text "The televised Dr Breen says, ~Let me read a letter I recently received.
+		'Dear Dr. Breen. Why has the Combine seen fit to suppress our reproductive cycle? Sincerely, A Concerned Citizen.'^
+		Thank you for writing, Concerned. Of course your question touches on one of the basic biological impulses, with all
+		its associated hopes and fears for the future of the species. I also detect some unspoken questions:
+		'Do Our Benefactors really know what's best for us?',
+		'What gives them the right to make this kind of decision for mankind?',
+		'Will they ever deactivate the suppression field and let us breed again?'
+		Allow me to address the anxieties underlying your concerns, rather than try to answer every possible question you might have left unvoiced.^^
+		First, let us consider the fact that for the first time ever, as a species, immortality is in our reach.
+		This simple fact has far-reaching implications. It requires radical rethinking and revision of our genetic imperatives.
+		It also requires planning and forethought that run in direct opposition to our neural pre-sets.
+		I find it helpful at times like these to remind myself that our true enemy is Instinct.
+		Instinct was our mother when we were an infant species.
+		Instinct coddled us and kept us safe in those hardscrabble years when we hardened our sticks and cooked our first meals above a meager
+			fire and started at the shadows that leapt upon the cavern's walls.
+		But inseparable from Instinct is its dark twin, Superstition.
+		Instinct is inextricably bound to unreasoning impulses, and today we clearly see its true nature. Instinct has just become aware of its irrelevance,
+			and like a cornered beast, it will not go down without a bloody fight.
+		Instinct would inflict a fatal injury on our species. Instinct creates its own oppressors, and bids us rise up against them.
+		Instinct tells us that the unknown is a threat, rather than an opportunity. Instinct slyly and covertly compels us away from change and progress.
+		Instinct, therefore, must be expunged. It must be fought tooth and nail, beginning with the basest of human urges: the urge to reproduce.
+		We should thank Our Benefactors for giving us respite from this overpowering force. They have thrown a switch and exorcised our demons in a single stroke.
+		They have given us the strength we never could have summoned to overcome this compulsion. They have given us purpose. They have turned our eyes toward the stars.
+		Let me assure you that the Suppressing Field will be shut off on the day that we have mastered ourselves, the day we can prove we no longer need it.
+		And that day of transformation, I have it on good authority, is close at hand.~",
+	found_in TrainStationMainHall;
 
 Object Camera "security camera",
 	with name "security" "camera",
@@ -614,18 +867,20 @@ Object CombineCommsComputer "Combine communications computer",
 	found_in InterrogationRoom2,
 	has static;
 
-! ----------------------------------------------------------------------------
-! Unreachable locations
-! ----------------------------------------------------------------------------
 
-Object NovaProspektPlatform "Nova Prospekt Train Platform",
-	with description InvalidAreaDescription,
-	has light;
-
-Object InterrogationRoom1 "Interrogation Room 1",
-	with description InvalidAreaDescription,
-	has light;
-
+Object TrashBin "trash bin",
+	with name "trash" "bin",
+	description "a trash bin",
+	after [;
+		LetGo,Receive:
+			if (location == MainHallAnteroom && noun == SodaCan) {
+				! weird stuff happens if the can is dropped in the bin when the bin has both container and supporter
+				give self container;
+				give self ~supporter;
+			}
+	],
+	found_in MainHallAnteroom,
+	has static container open;
 
 ! Object City17TrainStationVolatileTest "Danger zone test",
 ! 	with description "testing agitated CPs",

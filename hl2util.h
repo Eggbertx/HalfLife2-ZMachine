@@ -1,4 +1,5 @@
-Constant MAX_HEALTH 5;
+Constant MAX_HEALTH = 100;
+Constant MAX_HEV_CHARGE = 100;
 
 Global talks = 0;
 ! health ranges from 0 to MAX_HEALTH, if it reaches 0, the player dies. In certain locations, the player
@@ -6,13 +7,12 @@ Global talks = 0;
 ! For simplicity, the HEV suit does not have a battery level, and the player can always use the flashlight,
 ! and armor is not implemented.
 Global health = MAX_HEALTH;
+global hev_charge = MAX_HEV_CHARGE;
 Global wearing_hev = false;
 
 ! ----------------------------------------------------------------------------
 ! Classes
 ! ----------------------------------------------------------------------------
-Constant InvalidAreaDescription "This area is supposed to be unreachable. If you are here, I screwed up.";
-
 
 ! a person (or persons) who the user can talk to up to 3 times, after that they will respond with default_response if set,
 ! otherwise they will say they have nothing more to say.
@@ -22,6 +22,10 @@ Class LimitedTalker
 	talk3_speech 0,
 	default_response 0,
 	talked false,
+	life [;
+		Ask:
+			<<Talk self>>;
+	],
 	has animate;
 
 Class Screen
@@ -34,6 +38,26 @@ Class Breencast
 
 Class CivilProtectionUnit
 	with name "civil" "protection" "officer" "cp" "cop",
+	attack [ weapon;
+		switch(weapon) {
+		1: ! stun baton
+			print (The)self;
+			if (location hasnt volatile) {
+				! hit the player but don't do damage
+				print " hits you with the stun baton";
+			} else {
+				if (random(4) == 1) {
+					! miss
+					print " swings the stun baton at you, but misses.";
+				} else {
+					! hit
+					print " hits you with the stun baton.";
+					TakeDamage(5, -1);
+				}
+			}
+			break;
+		}
+	],
 	has animate male;
 
 Class GameLocation
@@ -59,17 +83,23 @@ Class GameLocation
 	has light;
 
 Class LocationDoor
-	with after [;
+	with description "This is a plain looking door.",
+	after [;
 		Look,Examine:
 			print (The)self ," is ";
 			if (self has open) {
 				"open.";
+			}
+			if (self has ajar) {
+				"ajar.";
 			}
 			print "closed";
 			if (self has lockable && self has locked) {
 				" and locked.";
 			}
 			".";
+		Open,Close:
+			give self ~ajar;
 	],
 	has door openable static;
 
@@ -85,23 +115,6 @@ Class LocationDoor
 	print "[", (string)text, "]";
 	@read_char 1 dummy;
 	print "^^";
-];
-
-! Confirm prints the given text and waits for a Y or N response, returning true for Y and false for N.
-! If the user presses any other key, it will reprompt if default_is_no is false, or return false if default_is_no is true.
-[ Confirm text default_is_no yn;
-	while(true) {
-		yn = Pause(text);
-		switch(yn) {
-			89,121: ! Y or y
-				rtrue;
-			78,110: ! N or n
-				rfalse;
-			default:
-				if (default_is_no)
-					rfalse;
-		}
-	}
 ];
 
 ! Print a pronoun for a person, based on the object's attributes, "he" for male, "she" for female, "it" for neuter,
@@ -161,6 +174,86 @@ Class LocationDoor
 	<<Exits>>; ! "obvious exits are..."
 ];
 
+[ DrawStatusLine width score_pos health_pos moves_pos;
+	if (location == nothing || location == thedark) return;
+	StatusLineHeight(gg_statuswin_size);
+	MoveCursor(1,1);
+
+	width = ScreenWidth();
+
+	if (width > 66) {
+		if (wearing_hev) {
+			! full size: Location Name     Health: 100  HEV: 100   Score: 999   Moves: 999
+			health_pos = width - 46;
+		} else {
+			! full size: Location Name     Health: 100  Score: 999   Moves: 999
+			health_pos = width - 36;
+		}
+	} else if (width > 40) {
+		if (wearing_hev) {
+			! smaller: Location Name  +:100  HEV:100  999/999
+			health_pos = width - 30;
+		} else {
+			! smaller: Location Name  +:100  999/999
+			health_pos = width - 20;
+		}
+	} else {
+		! smallest: +:100  HEV:100  999/999
+		! smallest: +:100  999/999
+		health_pos = 2;
+	}
+
+	if (width < 53) {
+		moves_pos = width - 7;
+	} else {
+		score_pos = width - 23;
+		moves_pos = width - 11;
+	}
+
+	spaces width;
+
+	if (width > 40) {
+		MoveCursor(1, 2);
+		if (location == thedark) {
+			print (name) location;
+		} else {
+			FindVisibilityLevels();
+			if (visibility_ceiling == location)
+				print (name) location;
+			else
+				print (The) visibility_ceiling;
+		}
+	}
+
+	MoveCursor(1, health_pos);
+	if (width > 66) {
+		if (wearing_hev) {
+			print "Health: ", health, "  HEV: ", hev_charge;
+		} else {
+			print "Health: ", health;
+		}
+	} else {
+		if (wearing_hev) {
+			print "+:", health, "  HEV:", hev_charge;
+		} else {
+			print "+:", health;
+		}
+	}
+
+	if (width > 66) {
+		MoveCursor(1, score_pos);
+		print (string) SCORE__TX, sline1;
+
+		MoveCursor(1, moves_pos);
+		print (string) MOVES__TX, sline2;
+	} else {
+		MoveCursor(1, moves_pos);
+		print sline1, "/", sline2;
+	}
+
+	.DSLContinue;
+	MainWindow();
+];
 
 ! ----------------------------------------------------------------------------
 ! Help menu and subroutines
@@ -211,7 +304,7 @@ Class LocationDoor
 		NOTE: This is a fan work, and is not affiliated with or endorsed by Valve Corporation or
 		its affiliates in any way. Half-Life 2 and all related characters, names,
 		locations, and other elements are the property of Valve Corporation. This demake is
-		a non-commercial project made for educational and entertainment purposes only.";
+		a non-commercial project made for educational and entertainment purtime_s_poss only.";
 	} else if (menu_item == 3) {
 		! Tips and tricks
 		print "Some tips and tricks for playing this game:^
@@ -255,7 +348,7 @@ Class LocationDoor
 		deadflag = flag_if_dead;
 		rtrue; ! signal that the player has died
 	} else if (health < 3 && wearing_hev) {
-		"Your HEV suit beeps urgently. ~Warning, vital signs critical.~";
+		print "Your HEV suit beeps urgently. ~Warning, vital signs critical.~";
 	}
 ];
 
@@ -267,6 +360,7 @@ Attribute volatile; ! for locations where looking/examining is not a free action
 Attribute healing; ! for locations where the player automatically heals
 Attribute enclosed; ! for locations where obvious exits should not be printed
 Attribute targeting_player; ! for NPCs and objects that are focused on or attacking the player
+Attribute ajar;
 
 ! ----------------------------------------------------------------------------
 ! Verb subroutines
@@ -346,7 +440,7 @@ Attribute targeting_player; ! for NPCs and objects that are focused on or attack
 	score--;
 ];
 
-[ ActivateSub n;
+[ ActivateSub;
 	"Nothing happens.";
 ];
 
