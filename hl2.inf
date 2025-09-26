@@ -691,7 +691,7 @@ Object MainHallAnteroom "Main Hall Anteroom",
 				rtrue;
 			}
 		default:
-			print "potc_turn: ", self.potc_turn, "^", "turns-potc_turn: ", (turns - self.potc_turn), "^";
+			! print "potc_turn: ", self.potc_turn, "^", "turns-potc_turn: ", (turns - self.potc_turn), "^";
 			if (TrashBinCop notin location || action == ##Help) {
 				rfalse;
 			}
