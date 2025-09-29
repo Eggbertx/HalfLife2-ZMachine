@@ -171,7 +171,7 @@ Class LocationDoor
 		! only if the location is volatile (i.e. something bad will happen if you don't move or do something)
 		turns--;
 	}
-	<<Exits>>; ! "obvious exits are..."
+	ExitsSub(); ! "obvious exits are..."
 ];
 
 [ DrawStatusLine width score_pos health_pos moves_pos;

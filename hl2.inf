@@ -406,7 +406,6 @@ Object InterrogationRoom2 "Interrogation Room 2",
 	each_turn [;
 		if(self.danger_turn > 0) {
 			new_line;
-			! print "each_turn: danger turns = ", self.danger_turn, "^";
 			if (turns + 2 == self.danger_turn) {
 				"The banging gets louder.^Barney looks at you and shouts, ~Hurry up, Gordon! Get out of here!~^";
 			} else if (turns + 1 == self.danger_turn) {
@@ -618,7 +617,7 @@ Object MainHallAnteroom "Main Hall Anteroom",
 	with description [;
 		print "You are in a small room to the north of the main hall";
 		if (SodaCan notin TrashBin) {
-			print ", with a bored looking civil protection officer standing by a trash bin.";
+			", with a bored looking civil protection officer standing by a trash bin.";
 		}
 		".";
 	],
@@ -652,7 +651,6 @@ Object MainHallAnteroom "Main Hall Anteroom",
 	],
 	before [;
 		ThrowAt:
-			! print "Throwing ", (name)noun, " at ", (the)second;
 			print "You throw ", (the)noun, " at ", (the)second, ".^";
 			if (noun == SodaCan) {
 				if (second == TrashBinCop) {
@@ -665,12 +663,17 @@ Object MainHallAnteroom "Main Hall Anteroom",
 				} else {
 					self.defiant();
 				}
+				self.potc_turn = -2;
 				rtrue;
 			}
+	],
+	after [;
+		Insert:
+			self.submissive();
+			rtrue;
 		Take:
-			! print turns, " ", self.potc_turn, "^";
 			if (noun == SodaCan && TrashBinCop in location) {
-				self.potc_turn = 1;
+				self.potc_turn = 3;
 				move SodaCan to player;
 				print (The)TrashBinCop, " says, ";
 				style bold;
@@ -683,7 +686,7 @@ Object MainHallAnteroom "Main Hall Anteroom",
 			}
 		Drop:
 			if (noun == SodaCan && TrashBinCop in location) {
-				self.potc_turn = turns;
+				self.potc_turn = 3;
 				print "The officer says, ";
 				style bold;
 				print "~I said put it in the trash can.~^";
@@ -691,49 +694,56 @@ Object MainHallAnteroom "Main Hall Anteroom",
 				rtrue;
 			}
 		default:
-			! print "potc_turn: ", self.potc_turn, "^", "turns-potc_turn: ", (turns - self.potc_turn), "^";
-			if (TrashBinCop notin location || action == ##Help) {
+			if (TrashBinCop notin location || action == ##Help || self.potc_turn < 0) {
 				rfalse;
 			}
-			if (action == ##Examine || action == ##Look) {
-				turns++; ! not volatile but this officer is impatient
-			}
-			switch (turns - self.potc_turn) {
-				0:
-					print "The officer says, ";
-					style bold;
-					print "~I said pick up the can.~^";
-					style roman;
-					break;
-				1:
-					! print "notin player:", SodaCan notin player;
+			switch (self.potc_turn) {
+				3:
 					print "The officer says, ";
 					style bold;
 					print "~";
 					if (SodaCan in player) {
 						print "Put it in the trash can.";
 					} else {
+						print "I said pick up the can.";
+					}
+					print "~^";
+					style roman;
+					break;
+				2:
+					print "The officer says, ";
+					style bold;
+					print "~";
+					if (SodaCan in player) {
+						print "I said, put it in the trash can.";
+					} else {
 						print "You knocked it over, pick it up.";
 					}
 					print "~^";
 					style roman;
-					self.before();
-					rtrue;
-				2:
+					break;
+				1:
 					print "The officer gets more annoyed and says, ";
 					style bold;
-					print "~Pick. Up. The can.~^";
+					print "~";
+					if (SodaCan in player) {
+						print "Put it in the bin. Now.";
+					} else {
+						print "Pick. Up. The can.";
+					}
+					print "~^";
 					style roman;
 					break;
-				3:
+				0:
 					print "The officer chuckles and says, ";
 					style bold;
 					print "~Whatever. Now get out of here.~^";
 					style roman;
 					print "He turns and walks away.";
 					move TrashBinCop to TrainStationMainHall;
+					break;
 			}
-
+			self.potc_turn--;
 		! rtrue;
 	],
 	s_to [;
@@ -743,7 +753,7 @@ Object MainHallAnteroom "Main Hall Anteroom",
 		return TrashBinCop.potc();
 	],
 	n_to DoorToMainHallAnteroom,
-	potc_turn 0,
+	potc_turn -1,
 	has light;
 
 Nearby SodaCan "soda can",
@@ -753,19 +763,19 @@ Nearby SodaCan "soda can",
 Nearby TrashBinCop "civil protection officer",
 	class CivilProtectionUnit,
 	with description [;
-		print "This is a civil protection officer with a stun baton. He looks bored.";
-		self.potc();
+		print "This is a civil protection officer with a stun baton. He looks bored. ";
+		if (location == MainHallAnteroom && MainHallAnteroom.potc_turn > -2) {
+			self.potc();
+		}
 	],
 	potc [;
 		if (TrashBin hasnt supporter) {
 			rfalse;
 		}
-		MainHallAnteroom.potc_turn = 1;
+		MainHallAnteroom.potc_turn = 4;
 		if (action == ##Examine) {
-			print " ";
-			Pronoun(self);
-		}
-		else
+			print " He";
+		} else
 			print (The)self, " is in the way. He ";
 		print " knocks a soda can off the trash bin with his stun baton, then looks at you and says, ";
 		style bold;
