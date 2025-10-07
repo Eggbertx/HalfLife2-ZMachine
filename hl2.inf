@@ -8,11 +8,6 @@ Constant Headline
 Constant MAX_SCORE 100;
 Release 1;
 
-Replace ListenSub;
-Replace DrawStatusLine;
-
-Include "Parser";
-Include "VerbLib";
 Include "./abbreviations";
 Include "./hl2util";
 

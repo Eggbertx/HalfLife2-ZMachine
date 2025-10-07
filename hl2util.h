@@ -10,6 +10,13 @@ Global health = MAX_HEALTH;
 global hev_charge = MAX_HEV_CHARGE;
 Global wearing_hev = false;
 
+
+Replace ListenSub;
+Replace DrawStatusLine;
+
+Include "Parser";
+Include "VerbLib";
+
 ! ----------------------------------------------------------------------------
 ! Classes
 ! ----------------------------------------------------------------------------
