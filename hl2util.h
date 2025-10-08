@@ -41,7 +41,8 @@ Class Screen
 
 Class Breencast
 	class Screen,
-	with description "A large screen displaying the former administrator of Black Mesa, Dr. Breen. You can watch or listen to it.";
+	with name "large" "display" "showing" "Dr" "Breen" "breencast",
+	description "A large screen displaying the former administrator of Black Mesa, Dr. Breen. You can watch or listen to it.";
 
 Class CivilProtectionUnit
 	with name "civil" "protection" "officer" "cp" "cop",

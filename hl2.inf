@@ -93,7 +93,7 @@ GameLocation PointInsertionTrainCar "Point Insertion",
 Nearby DidntSeeYouGetOnCitizen "man standing by the doors",
 	class LimitedTalker,
 	with name "man" "standing" "up" "near" "by" "the" "door" "doors",
-	description "a man wearing denim coveralls and carrying a suitcase, standing by the train car doors",
+	description "He is wearing denim coveralls and carrying a suitcase, standing by the train car doors",
 	talk_speech "He looks at you and says, ~I didn't see you get on.~",
 	talk2_speech "He says, ~This is my third transfer this year.~",
 	has male;
@@ -101,7 +101,7 @@ Nearby DidntSeeYouGetOnCitizen "man standing by the doors",
 Nearby RelocatedCitizen "man sitting on the seat",
 	class LimitedTalker,
 	with name "man" "sitting" "down" "on" "the" "seat",
-	description "a man wearing denim coveralls, sitting on the seat holding a suitcase",
+	description "He is wearing denim coveralls and sitting on the seat, holding a suitcase",
 	talk_speech "He says, ~No matter how many times I get relocated, I never get used to it.~",
 	has male;
 
@@ -138,7 +138,7 @@ Object -> TurnstileToWaitingRoom "turnstile to the waiting room",
 Nearby AreYouTheOnlyOnes "woman anxiously standing on the other side of the gate",
 	class LimitedTalker,
 	with name "woman" "standing" "by" "the" "gate",
-	description "a woman in coveralls standing by the train station gate",
+	description "She is wearing denim coveralls and standing by the train station gate.",
 	talk_speech "She asks you, ~Are you the only ones on that train?~",
 	talk2_speech "She says, ~Overwatch stopped our train in the woods and took my husband for questioning.
 		They said he'd be on the next train. I'm not sure when that was...They're being nice, though, letting me wait for him.~",
@@ -202,7 +202,7 @@ Nearby DepartureArrivalBoard "departure and arrival boards",
 Nearby PacingCitizen "man pacing back and forth, talking to himself",
 	class LimitedTalker,
 	with name "pacing" "man" "pacer",
-	description "a man in coveralls, pacing back and forth and muttering to himself",
+	description "He is wearing denim coveralls, pacing back and forth and muttering to himself.",
 	default_response "~...they're always departing but they never arrive... and the ones that do arrive... they never leave...
 	you never see them go they're always full... no one ever gets on but they're always... they're always departing but they never arrive...~";
 
@@ -210,7 +210,7 @@ Nearby DontDrinkTheWaterCitizen "man sitting on a bench, looking confused",
 	class LimitedTalker,
 	with name "confused" "man" "sitting" "on" "bench",
 	description [;
-		print "a dazed looking man sitting on a bench";
+		print "This is a dazed looking man sitting on a bench";
 		if (self.talk_speech ~= 0)
 			print ". He gestures at you.";
 	],
@@ -218,22 +218,22 @@ Nearby DontDrinkTheWaterCitizen "man sitting on a bench, looking confused",
 
 Nearby VendingMachine "vending machine",
 	with name "vending" "machine" "Dr" "Breens" "Private" "Reserve",
-	with description "a vending machine labelled ~Dr>Breens Private Reserve~.",
+	with description "This vending machine is labelled ~Dr>Breens Private Reserve~.",
 	has static;
 
 Nearby AnnoyedCitizen "annoyed looking man sitting on a bench",
 	class LimitedTalker,
 	with name "annoyed" "man" "citizen" "sitting" "on" "bench",
-	description "an annoyed looking man sitting on a bench, tapping his foot impatiently",
+	description "He is sitting on a bench, tapping his foot impatiently.",
 	talk_speech "He says, ~I see they took your suitcase too! They can't get away with this much longer.~",
 	has male;
 
 Nearby TwoCitizensBreenAgain "two citizens watching the breencast",
 	class LimitedTalker,
 	with name "two" "citizens",
-	description "two citizens in coveralls, watching the breencast on a large display",
-	talk_speech "One of them says, ~Dr. Breen again? I was hoping I'd seen the last of him in City 14.~^
-		The other replies, ~I wouldn't say that too loud. This is his base of operations.~",
+	description "These are two citizens in denim coveralls, watching the breencast on a large display.",
+	talk_speech "One of them says to the other, ~Dr. Breen again? I was hoping I'd seen the last of him in City 14.~^
+		The other leans in and whispers, ~I wouldn't say that too loud. This is his base of operations.~",
 	before [;
 		Watch,Listen:
 			<<Talk self>>;
@@ -246,32 +246,38 @@ Nearby TwoCitizensBreenAgain "two citizens watching the breencast",
 
 Object NovaProspektLine "Line to Nova Prospekt Platform",
 	with name "line" "entry" "to" "Nova" "Prospekt",
-	description "a processing line leading to the Nova Prospekt train platform",
+	description "This is a processing line leading to the entrance to the Nova Prospekt train platform.",
 	initial [;
 		print "(getting in line for Nova Prospekt stop)^";
-		if (self hasnt visited) {
-			print "You hear civil protection units giving commands to citizens.^";
-			style bold;
-			print "~You, citizen! Come with me! Move it!~^";
-			style roman;
-			print "~Wait a minute...~^";
-			style bold;
-			print "~Get in here.~^";
-			style roman;
-			print "~Where are you taking me?~^";
-			style bold;
-			print "~Go on!~^";
-			style roman;
-			print "~Me?!~^";
-			style bold;
-			print "~I said move!~^";
-			style roman;
-			"The civil protection officer opens the door and forces the citizen inside.^";
-		}
+	],
+	after [;
+		Look:
+			if (NovaProspektCitizen in location) {
+				print "^You hear civil protection units giving commands to citizens.^";
+				style bold;
+				print "~You, citizen! Come with me! Move it!~^";
+				style roman;
+				print "~Wait a minute...~^";
+				style bold;
+				print "~Get in here.~^";
+				style roman;
+				print "~Where are you taking me?~^";
+				style bold;
+				print "~Go on!~^";
+				style roman;
+				print "~Me?!~^";
+				style bold;
+				print "~I said move!~^";
+				style roman;
+				remove NovaProspektCitizen;
+				"The civil protection officer opens the door and forces the man inside.";
+			}
 	],
 	n_to NovaProspektGate,
 	e_to InterrogationHallwayDoor,
 	has light;
+
+Nearby NovaProspektCitizen "man being handled by a civil protection officer";
 
 Nearby NovaProspektGate "gate to Nova Prospekt platform",
 	class LocationDoor
@@ -337,7 +343,7 @@ Object InterrogationHallwayDoor "door"
 
 Object InterrogationHallway "Hallway to interrogation rooms",
 	with name "hallway" "to" "interrogation" "rooms",
-	description "a dimly lit hallway with two interrogation room doors",
+	description "This is a dimly lit hallway with two interrogation room doors.",
 	initial [;
 		give InterrogationHallwayDoor ~open;
 		give InterrogationHallwayDoor locked;
@@ -495,7 +501,7 @@ Nearby BarneyDoor "storage room door",
 
 Object StorageRoomFloor "Storage Room",
 	with name "storage" "room",
-	description "a small storage room with a few crates and a ladder leading up to a platform and a window",
+	description "This is a small storage room with a few crates and a ladder leading up to a platform and a window.",
 	initial [;
 		if (self hasnt visited) {
 			print "(entering the storage room)^
@@ -511,7 +517,7 @@ Object StorageRoomFloor "Storage Room",
 
 Nearby StorageRoomLadder "ladder",
 	with name "ladder" "to" "the" "platform",
-	description "a ladder leading up to a platform with a window",
+	description "This is a ladder leading up to a platform with a window.",
 	door_dir [;
 		if (location == StorageRoomFloor) {
 			return StorageRoomPlatform;
@@ -539,12 +545,12 @@ Object StorageRoomPlatform "Storage Room Platform",
 
 Nearby LargeWoodenBox "large wooden crate",
 	with name "big" "large" "wooden" "crate",
-	with description "a large wooden crate",
+	with description "This is a large wooden crate.",
 	has supporter;
 
 Nearby MediumWoodenBox "wooden box",
 	with name "wooden" "box",
-	with description "a medium-sized wooden box";
+	with description "This is a medium-sized wooden box.";
 
 Nearby StorageRoomWindow "window to a small courtyard",
 	with name "window",
@@ -556,7 +562,8 @@ Nearby StorageRoomWindow "window to a small courtyard",
 		}
 		rtrue;
 	],
-	description "a window overlooking a small courtyard",
+	description "This is a window overlooking a small courtyard. It is just high enough that you can't reach it from the platform without
+		stacking something underneath it.",
 	door_to [;
 		! player must have the boxes stacked up to reach the window
 		if (location == StorageRoomPlatform && (parent(LargeWoodenBox) == MediumWoodenBox || parent(MediumWoodenBox) == LargeWoodenBox)) {
@@ -794,8 +801,7 @@ Object TrainStationMainHall "Main Hall",
 
 Object BreencastWelcome "Breencast",
 	class Breencast,
-	with name "large" "display" "showing" "Dr" "Breen" "breencast",
-	watch_text "The televised Dr Breen says, ~Welcome. Welcome to City 17.^
+	with watch_text "The televised Dr Breen says, ~Welcome. Welcome to City 17.^
 		You have chosen, or been chosen, to relocate to one of our finest remaining urban centers.
 		I thought so much of City 17 that I elected to establish my administration here, in the citadel so thoughtfully
 		provided by Our Benefactors. I have been proud to call City 17 my home. And so, whether you are here to stay,
@@ -805,53 +811,55 @@ Object BreencastWelcome "Breencast",
 
 Object BreencastPlaza "Breencast",
 	class Breencast,
-	with name "large" "display" "showing" "Dr" "Breen" "breencast",
-	watch_text "The televised Dr Breen says, ~Let me read a letter I recently received.
-		'Dear Dr. Breen. Why has the Combine seen fit to suppress our reproductive cycle? Sincerely, A Concerned Citizen.'^
-		Thank you for writing, Concerned. Of course your question touches on one of the basic biological impulses, with all
-		its associated hopes and fears for the future of the species. I also detect some unspoken questions:
-		'Do Our Benefactors really know what's best for us?',
-		'What gives them the right to make this kind of decision for mankind?',
-		'Will they ever deactivate the suppression field and let us breed again?'
-		Allow me to address the anxieties underlying your concerns, rather than try to answer every possible question you might have left unvoiced.^^
-		First, let us consider the fact that for the first time ever, as a species, immortality is in our reach.
-		This simple fact has far-reaching implications. It requires radical rethinking and revision of our genetic imperatives.
-		It also requires planning and forethought that run in direct opposition to our neural pre-sets.
-		I find it helpful at times like these to remind myself that our true enemy is Instinct.
-		Instinct was our mother when we were an infant species.
-		Instinct coddled us and kept us safe in those hardscrabble years when we hardened our sticks and cooked our first meals above a meager
-			fire and started at the shadows that leapt upon the cavern's walls.
-		But inseparable from Instinct is its dark twin, Superstition.
-		Instinct is inextricably bound to unreasoning impulses, and today we clearly see its true nature. Instinct has just become aware of its irrelevance,
-			and like a cornered beast, it will not go down without a bloody fight.
-		Instinct would inflict a fatal injury on our species. Instinct creates its own oppressors, and bids us rise up against them.
-		Instinct tells us that the unknown is a threat, rather than an opportunity. Instinct slyly and covertly compels us away from change and progress.
-		Instinct, therefore, must be expunged. It must be fought tooth and nail, beginning with the basest of human urges: the urge to reproduce.
-		We should thank Our Benefactors for giving us respite from this overpowering force. They have thrown a switch and exorcised our demons in a single stroke.
-		They have given us the strength we never could have summoned to overcome this compulsion. They have given us purpose. They have turned our eyes toward the stars.
-		Let me assure you that the Suppressing Field will be shut off on the day that we have mastered ourselves, the day we can prove we no longer need it.
-		And that day of transformation, I have it on good authority, is close at hand.~",
+	with watch_text [;
+		print "The televised Dr Breen says, ~Let me read a letter I recently received.
+			'Dear Dr. Breen. Why has the Combine seen fit to suppress our reproductive cycle? Sincerely, A Concerned Citizen.'^
+			Thank you for writing, Concerned. Of course your question touches on one of the basic biological impulses, with all
+			its associated hopes and fears for the future of the species. I also detect some unspoken questions:^
+			Do Our Benefactors really know what's best for us? What gives them the right to make this kind of decision for mankind?
+			Will they ever deactivate the suppression field and let us breed again?^
+			Allow me to address the anxieties underlying your concerns, rather than try to answer every possible question you might
+			have left unvoiced.~^Keep watching?>";
+		if (YesOrNo() == false) {
+			jump Skip;
+		}
+		print "^He continues, ~First, let us consider the fact that for the first time ever, as a species, immortality is in our reach.
+			This simple fact has far-reaching implications. It requires radical rethinking and revision of our genetic imperatives.
+			It also requires planning and forethought that run in direct opposition to our neural presets. I find it helpful at times
+			like these to remind myself that our true enemy is Instinct. Instinct was our mother when we were an infant species.
+			Instinct coddled us and kept us safe in those hardscrabble years when we hardened our sticks and cooked our first meals above a meager
+			fire and started at the shadows that leapt upon the cavern's walls. But inseparable from Instinct is its dark twin, Superstition.~
+			^Keep watching?>";
+		if (YesOrNo() == false) {
+			jump Skip;
+		}
+		"^He continues, ~Instinct is inextricably bound to unreasoning impulses,
+		and today we clearly see its true nature. Instinct has just become aware of its irrelevance, and like a cornered beast, it will not go
+		down without a bloody fight. Instinct would inflict a fatal injury on our species. Instinct creates its own oppressors, and bids us rise
+		up against them. Instinct tells us that the unknown is a threat, rather than an opportunity. Instinct slyly and covertly compels us away
+		from change and progress. Instinct, therefore, must be expunged. It must be fought tooth and nail, beginning with the basest of human urges:
+		the urge to reproduce. We should thank Our Benefactors for giving us respite from this overpowering force. They have thrown a switch and
+		exorcised our demons in a single stroke. They have given us the strength we never could have summoned to overcome this compulsion.
+		They have given us purpose. They have turned our eyes toward the stars. Let me assure you that the Suppressing Field will be shut off on
+		the day that we have mastered ourselves, the day we can prove we no longer need it. And that day of transformation, I have it on good authority,
+		is close at hand.~";
+		.Skip;
+			"Yeah, you probably have more important things to do.";
+	],
 	found_in TrainStationMainHall;
 
 Object Camera "security camera",
 	with name "security" "camera",
 	with description [;
-		print "A security camera with a ";
+		print "This security camera with a ";
 		if (self has targeting_player)
 			print "red";
 		else
 			print "green";
-		print " indicator light, mounted to the wall, ";
+		print " indicator light is mounted to the wall";
 		if (self has targeting_player)
-			"focused on you.";
-		"beeping every few seconds and swivelling from side to side.";
-	],
-	after [;
-		Examine:
-			if (self hasnt targeting_player) {
-				give self targeting_player;
-				"The camera swivels to look at you, and its light turns red.";
-			}
+			". It is focused on you.";
+		", beeping every few seconds and swivelling from side to side.^It swivels to look at you, and its light turns red.";
 	],
 	found_in NovaProspektLine,
 	has static;
@@ -868,14 +876,14 @@ Object BatonCP1 "civil protection unit",
 
 Object CombineCommsComputer "Combine communications computer",
 	with name "combine" "communications" "computer" "computer",
-	description "an advanced looking computer with a large display mounted to the wall",
+	description "This is an advanced looking computer with a large display mounted to the wall.",
 	found_in InterrogationRoom2,
 	has static;
 
 
 Object TrashBin "trash bin",
 	with name "trash" "bin",
-	description "a trash bin",
+	description "This is a trash bin.",
 	after [;
 		LetGo,Receive:
 			if (location == MainHallAnteroom && noun == SodaCan) {
