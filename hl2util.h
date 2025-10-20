@@ -9,7 +9,9 @@ Global talks = 0;
 Global health = MAX_HEALTH;
 global hev_charge = MAX_HEV_CHARGE;
 Global wearing_hev = false;
-
+! whether the player has seen any breencast yet, since it seems weird to have it being referred to as a "Breencast" if they haven't seen it yet
+Global seen_breencast = false;
+Global obvious_exits = false;
 
 Replace ListenSub;
 Replace DrawStatusLine;
@@ -42,10 +44,21 @@ Class Screen
 Class Breencast
 	class Screen,
 	with name "large" "display" "showing" "Dr" "Breen" "breencast",
-	description "A large screen displaying the former administrator of Black Mesa, Dr. Breen. You can watch or listen to it.";
+	short_name [;
+		if (seen_breencast)
+			print "Breencast";
+		else
+			print "large display showing Dr. Breen";
+		rtrue;
+	],
+	description [;
+		seen_breencast = true;
+		"On the large display, you can see Dr. Breen, the former administrator of Black Mesa. You can watch or listen to it.";
+	];
 
-Class CivilProtectionUnit
+Class CivilProtectionOfficer
 	with name "civil" "protection" "officer" "cp" "cop",
+	short_name "civil protection officer",
 	attack [ weapon;
 		switch(weapon) {
 		1: ! stun baton
@@ -71,41 +84,39 @@ Class CivilProtectionUnit
 Class GameLocation
 	with danger_turn  -1, ! if volatile and danger_turn > -1, something bad will happen when turns >= danger_turn
 	after [;
-		! Look:
-		! 	self.look_base();
-			! object of this class should handle decrementing danger_turn if volatile
-
 		if (self has healing && health < MAX_HEALTH) {
 			health++;
 		}
 	],
-	! look_base [;
-	! 	if (self has volatile) {
-	! 		"This area seems dangerous. You should move or do something quickly.";
-	! 	} else if (turns > 0) {
-	! 		! unlike most text adventures, looking around does not always count as a turn
-	! 		! only if the location is volatile (i.e. something bad will happen if you don't move or do something)
-	! 		turns--;
-	! 	}
-	! ],
+	describe [;
+		PrintOrRun(self, description);
+		if (self has volatile) {
+			"^This area seems dangerous. You should move or do something quickly.";
+		} else if (turns > 0) {
+			! unlike most text adventures, looking around does not always count as a turn
+			! only if the location is volatile (i.e. something bad will happen if you don't move or do something)
+			turns--;
+		}
+		rtrue;
+	]
 	has light;
 
 Class LocationDoor
-	with description "This is a plain looking door.",
+	with description [;
+		print "This is a plain looking door. It is ";
+		if (self has open) {
+			"open.";
+		}
+		if (self has ajar) {
+			"ajar.";
+		}
+		print "closed";
+		if (self has lockable && self has locked) {
+			" and locked.";
+		}
+		".";
+	],
 	after [;
-		Look,Examine:
-			print (The)self ," is ";
-			if (self has open) {
-				"open.";
-			}
-			if (self has ajar) {
-				"ajar.";
-			}
-			print "closed";
-			if (self has lockable && self has locked) {
-				" and locked.";
-			}
-			".";
 		Open,Close:
 			give self ~ajar;
 	],
@@ -170,7 +181,9 @@ Class LocationDoor
 	if (location == nothing || location == thedark || location has enclosed) return;
 	! if (location has visited) print (name) location, "^";
 	! else print (name) location, " (first time seen)^";
-	new_line;
+	if (obvious_exits) {
+		new_line;
+	}
 
 	if (location has volatile) {
 		"This area seems dangerous. You should move or do something soon.";
@@ -179,7 +192,9 @@ Class LocationDoor
 		! only if the location is volatile (i.e. something bad will happen if you don't move or do something)
 		turns--;
 	}
-	ExitsSub(); ! "obvious exits are..."
+	if (obvious_exits) {
+		ExitsSub(); ! "obvious exits are..."
+	}
 ];
 
 [ DrawStatusLine width score_pos health_pos moves_pos;
@@ -271,7 +286,7 @@ Class LocationDoor
 	if (menu_item == 0) {
 		item_width = 11;
 		item_name = "Main Menu";
-		return 3; ! number of items in the menu
+		return 4; ! number of items in the menu
 	}
 	if (menu_item == 1) {
 		item_width = 6;
@@ -284,6 +299,14 @@ Class LocationDoor
 	if (menu_item == 3) {
 		item_width = 4;
 		item_name = "Tips";
+	}
+	if (menu_item == 4) {
+		item_width = 20;
+		if (obvious_exits) {
+			item_name = "Disable Obvious Exits";
+		} else {
+			item_name = "Enable Obvious Exits";
+		}
 	}
 ];
 
@@ -312,7 +335,7 @@ Class LocationDoor
 		NOTE: This is a fan work, and is not affiliated with or endorsed by Valve Corporation or
 		its affiliates in any way. Half-Life 2 and all related characters, names,
 		locations, and other elements are the property of Valve Corporation. This demake is
-		a non-commercial project made for educational and entertainment purtime_s_poss only.";
+		a non-commercial project made for educational and entertainment purposes only.";
 	} else if (menu_item == 3) {
 		! Tips and tricks
 		print "Some tips and tricks for playing this game:^
@@ -327,6 +350,15 @@ Class LocationDoor
 		volatile locations.^^
 		Remember that some actions may have consequences, as in the original game, so think before you act. If
 		a civil protection officer is nearby, trying to interact with them beyond looking may incur their wrath.^";
+	} else if (menu_item == 4) {
+		! Toggle obvious exits
+		if (obvious_exits) {
+			obvious_exits = false;
+			print "Obvious exits hinting disabled.^";
+		} else {
+			obvious_exits = true;
+			print "Obvious exits hinting enabled.^";
+		}
 	}
 ];
 
@@ -334,7 +366,8 @@ Class LocationDoor
 	DoMenu("There is information provided on the following:^
 		^    Instructions for playing
 		^    About this demake
-		^    Tips and tricks^", HelpMenu, HelpInfo, 0, true);
+		^    Tips and tricks
+		^    Toggle obvious exits hinting^", HelpMenu, HelpInfo, 0, true);
 	turns--; ! prevent the turn counter from incrementing
 ];
 
@@ -343,9 +376,7 @@ Class LocationDoor
 		-1: print "You probably should have avoided that civil protection unit"; ! killed by test CP, removed
 		-2: print "You probably should have listened to Barney and left when you had the chance."; ! killed by Combine soldiers in the interrogation room
 	}
-	if (deadflag < 0 && deadflag == -2) {
-		deadflag = -deadflag;
-	} else if (deadflag < 0) {
+	if (deadflag < 0) {
 		deadflag = 1;
 	}
 ];
@@ -369,6 +400,7 @@ Attribute healing; ! for locations where the player automatically heals
 Attribute enclosed; ! for locations where obvious exits should not be printed
 Attribute targeting_player; ! for NPCs and objects that are focused on or attacking the player
 Attribute ajar;
+Attribute interaction_done; ! for NPCs/locations that have had their interaction completed
 
 ! ----------------------------------------------------------------------------
 ! Verb subroutines
@@ -449,6 +481,7 @@ Attribute ajar;
 ];
 
 [ ActivateSub;
+	give location volatile;
 	"Nothing happens.";
 ];
 

@@ -10,10 +10,12 @@ endif
 
 all: hl2
 
-hl2:
-	@echo "! this is a generated file, DO NOT EDIT UNLESS YOU KNOW WHAT YOU ARE DOING" > abbreviations.h
-	inform -e -u hl2.inf | grep --color=never "^Abbreviate \"" >> abbreviations.h
+hl2: abbreviations.h
 	$(MAKE) VERSION=5 hl2.zn
+
+abbreviations.h:
+	@echo "! this is a generated file, DO NOT EDIT UNLESS YOU KNOW WHAT YOU ARE DOING" > hl2util.h
+	inform -e -u hl2.inf | grep --color=never "^ObviousExitsSub" >> hl2util.h
 
 %.zn: %.inf
 	inform ${ARGS} $*.inf

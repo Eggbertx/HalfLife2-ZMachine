@@ -61,6 +61,7 @@ Include "./hl2util";
 		So wake up Mr. Freeman... Wake up and smell the ashes.~^^
 		He disappears, or rather, you reappear.^^";
 	Pause();
+	ClearScreen();
 	! PlayerTo(PointInsertionTrainCar);
 	location = PointInsertionTrainCar;
 ];
@@ -70,7 +71,8 @@ Include "./hl2util";
 ! Point Insertion Train Car and children
 ! ----------------------------------------------------------------------------
 
-GameLocation PointInsertionTrainCar "Point Insertion",
+Object PointInsertionTrainCar "Point Insertion",
+	class GameLocation,
 	with name "train" "car",
 	description [;
 		if(self hasnt enclosed)
@@ -88,7 +90,7 @@ GameLocation PointInsertionTrainCar "Point Insertion",
 		"You can't leave yet, the doors are closed and the train is still moving. You can talk to the
 			other passengers to pass time as you wait, though.";
 	],
-	has light enclosed container;
+	has concealed enclosed container;
 
 Nearby DidntSeeYouGetOnCitizen "man standing by the doors",
 	class LimitedTalker,
@@ -110,30 +112,45 @@ Nearby RelocatedCitizen "man sitting on the seat",
 ! City 17 Train Station and children
 ! ----------------------------------------------------------------------------
 
-Object City17TrainStation "City 17 Train Station",
-	with description "You are at a run-down train station, with melancholic looking citizens in denim coveralls passing through.",
-	w_to TurnstileToWaitingRoom,
-	has light;
+Object City17TrainStation "City 17 Train Station"
+	class GameLocation,
+	with description [;
+		if (self hasnt visited) {
+			"You exit the train car and step onto the platform of a run-down train station. Citizens in denim coveralls
+			are passing through, some carrying suitcases.";
+		}
+		"You are at a run-down train station, with melancholic looking citizens in denim coveralls passing through.";
+	],
+	before [;
+		Go:
+			if (TurnstileToWaitingRoom hasnt open) {
+				print "(entering the turnstile)";
+				give TurnstileToWaitingRoom open;
+			}
+	],
+	w_to TurnstileToWaitingRoom;
 
-Object -> TurnstileToWaitingRoom "turnstile to the waiting room",
+Nearby TurnstileToWaitingRoom "turnstile leading west to the waiting room",
 	class LocationDoor,
 	with name "turnstile" "to" "waiting" "room",
 	description "This is a turnstile with a sign that says ~Citizen Processing Waiting Room~",
 	door_to [;
-		print "(going through the turnstile)^";
 		return City17TrainStationWaitingRoom;
 	],
 	door_dir City17TrainStationWaitingRoom,
 	before [;
-		Open,Enter:
-			if (location == City17TrainStation)
-				<<Go w_obj>>;
+		Enter:
+			if (location == City17TrainStation) {
+				give self open;
+				PlayerTo(City17TrainStationWaitingRoom);
+				rtrue;
+			}
 			"This is a one-way turnstile.";
 		Close:
 			print_ret (The)self, " is not something you can close.";
 	],
 	found_in City17TrainStation City17TrainStationWaitingRoom,
-	has open;
+	has ~openable;
 
 Nearby AreYouTheOnlyOnes "woman anxiously standing on the other side of the gate",
 	class LimitedTalker,
@@ -145,7 +162,7 @@ Nearby AreYouTheOnlyOnes "woman anxiously standing on the other side of the gate
 	has female;
 
 Nearby MoveAway "civil protection officer",
-	class CivilProtectionUnit,
+	class CivilProtectionOfficer,
 	with description [;
 		if (self has targeting_player) {
 			"The civil protection officer looks at you and brandishes his stun baton.";
@@ -183,20 +200,20 @@ Nearby VortigauntSweeping "Vortigaunt sweeping the floor",
 ! Waiting Room
 ! ----------------------------------------------------------------------------
 
-Object City17TrainStationWaitingRoom "City 17 Citizen Processing Waiting Room",
-	with description "You are in the waiting room of the train station.",
+Object City17TrainStationWaitingRoom "City 17 Citizen Processing Waiting Room"
+	class GameLocation,
+	with description "You are in the waiting room of the train station. To the north, you see a line of people to a platform gate.",
 	initial [;
 		give TurnstileToWaitingRoom ~open;
 		give TurnstileToWaitingRoom locked;
 	],
 	n_to NovaProspektLine,
-	e_to TurnstileToWaitingRoom,
-	has light;
+	e_to TurnstileToWaitingRoom;
 
 Nearby DepartureArrivalBoard "departure and arrival boards",
 	with name "departure" "and" "arrival" "board" "boards",
-	description "Boards showing departures and arrival times for trains to and from various locations.
-	It looks kind of faded, like everything else around here.",
+	description "These are boards showing departures and arrival times for trains to and from various locations.
+		They look kind of faded, like everything else around here.",
 	has static pluralname;
 
 Nearby PacingCitizen "man pacing back and forth, talking to himself",
@@ -244,40 +261,41 @@ Nearby TwoCitizensBreenAgain "two citizens watching the breencast",
 ! Nova Prospekt Line and gate
 ! ----------------------------------------------------------------------------
 
-Object NovaProspektLine "Line to Nova Prospekt Platform",
+Object NovaProspektLine "Line to Nova Prospekt Platform"
+	class GameLocation,
 	with name "line" "entry" "to" "Nova" "Prospekt",
-	description "This is a processing line leading to the entrance to the Nova Prospekt train platform.",
+	description [;
+		print "This is a processing line leading to the gate for the Nova Prospekt train platform to the north. Officers check citizens'
+			identification as they prepare to board.^";
+		if (self hasnt interaction_done) {
+			print "^Suddenly, a civil protection officer stops the man at the front of the line.^";
+			style bold;
+			print "~You, citizen! Come with me! Move it!~^";
+			style roman;
+			print "The officer grabs the man and opens the door, labeled ~Security~.^";
+			print "~Wait a minute...~^";
+			style bold;
+			print "~Get in here.~^";
+			style roman;
+			print "~Where are you taking me?~^";
+			style bold;
+			print "~Go on!~^";
+			style roman;
+			print "~Me?!~^";
+			style bold;
+			print "~I said move!~^";
+			style roman;
+			give self interaction_done;
+			"The officer forces the man inside and closes the door behind him.";
+		}
+		rtrue;
+	],
 	initial [;
 		print "(getting in line for Nova Prospekt stop)^";
-	],
-	after [;
-		Look:
-			if (NovaProspektCitizen in location) {
-				print "^You hear civil protection units giving commands to citizens.^";
-				style bold;
-				print "~You, citizen! Come with me! Move it!~^";
-				style roman;
-				print "~Wait a minute...~^";
-				style bold;
-				print "~Get in here.~^";
-				style roman;
-				print "~Where are you taking me?~^";
-				style bold;
-				print "~Go on!~^";
-				style roman;
-				print "~Me?!~^";
-				style bold;
-				print "~I said move!~^";
-				style roman;
-				remove NovaProspektCitizen;
-				"The civil protection officer opens the door and forces the man inside.";
-			}
 	],
 	n_to NovaProspektGate,
 	e_to InterrogationHallwayDoor,
 	has light;
-
-Nearby NovaProspektCitizen "man being handled by a civil protection officer";
 
 Nearby NovaProspektGate "gate to Nova Prospekt platform",
 	class LocationDoor
@@ -532,6 +550,11 @@ Nearby StorageRoomLadder "ladder",
 		print "(climbing down the ladder)^";
 		return StorageRoomFloor;
 	],
+	before [;
+		Activate,Climb:
+			PlayerTo(self.door_to());
+			rtrue;
+	],
 	found_in StorageRoomFloor StorageRoomPlatform,
 	has static door open;
 
@@ -562,12 +585,15 @@ Nearby StorageRoomWindow "window to a small courtyard",
 		}
 		rtrue;
 	],
-	description "This is a window overlooking a small courtyard. It is just high enough that you can't reach it from the platform without
-		stacking something underneath it.",
+	description [;
+		print "This is a window overlooking a small courtyard. It is ";
+		if (location == SmallCourtyardOutsideStorageRoom)
+			"too high to reach from here.";
+		"just high enough that you can't reach it from the platform without stacking something underneath it.";
+	],
 	door_to [;
 		! player must have the boxes stacked up to reach the window
 		if (location == StorageRoomPlatform && (parent(LargeWoodenBox) == MediumWoodenBox || parent(MediumWoodenBox) == LargeWoodenBox)) {
-			print "(climbing out the window)^";
 			PlayerTo(SmallCourtyardOutsideStorageRoom);
 			rtrue;
 		}
@@ -585,9 +611,17 @@ Nearby StorageRoomWindow "window to a small courtyard",
 	has static door open;
 
 Object SmallCourtyardOutsideStorageRoom "Small Courtyard",
-	with description "You are in a small courtyard.",
+	with description [;
+		if (self hasnt visited) {
+			print "You climb out the window and are now ";
+		} else {
+			print "You are ";
+		}
+		"in a small courtyard, with a door leading to the south.";
+	],
 	initial [;
 		if (self hasnt visited) score++;
+		give StorageRoomWindow scenery;
 	],
 	s_to DoorToMainHallAnteroom,
 	w_to StorageRoomWindow,
@@ -602,14 +636,8 @@ Object DoorToMainHallAnteroom "door",
 		}
 		return MainHallAnteroom;
 	],
-	door_dir [;
-		if (location == MainHallAnteroom) {
-			return s_to;
-		}
-		return n_to;
-	],
 	found_in SmallCourtyardOutsideStorageRoom MainHallAnteroom,
-	has ajar;
+	has ajar scenery;
 
 ! ----------------------------------------------------------------------------
 ! Main hall and anteroom
@@ -618,8 +646,8 @@ Object DoorToMainHallAnteroom "door",
 Object MainHallAnteroom "Main Hall Anteroom",
 	with description [;
 		print "You are in a small room to the north of the main hall";
-		if (SodaCan notin TrashBin) {
-			", with a bored looking civil protection officer standing by a trash bin.";
+		if (self hasnt interaction_done) {
+			", with a bored looking civil protection officer standing by a trash bin by the southern exit.";
 		}
 		".";
 	],
@@ -632,6 +660,7 @@ Object MainHallAnteroom "Main Hall Anteroom",
 		style roman;
 		print "He turns and walks away.";
 		score = score + 2;
+		give self interaction_done;
 		move TrashBinCop to TrainStationMainHall;
 	],
 	defiant [;
@@ -642,6 +671,7 @@ Object MainHallAnteroom "Main Hall Anteroom",
 		style roman;
 		TrashBinCop.attack(1);
 		print " and walks away.^";
+		give self interaction_done;
 		move TrashBinCop to TrainStationMainHall;
 	],
 	initial [;
@@ -659,7 +689,7 @@ Object MainHallAnteroom "Main Hall Anteroom",
 					print "It bounces off his head. The officer activates his stun baton and says, ";
 					self.defiant();
 					score = score + 4;
-				} else if(second == TrashBin) {
+				} else if (second == TrashBin) {
 					print "It lands in the trash bin. ";
 					self.submissive();
 				} else {
@@ -749,7 +779,7 @@ Object MainHallAnteroom "Main Hall Anteroom",
 		! rtrue;
 	],
 	s_to [;
-		if (SodaCan in TrashBin && TrashBin has container) {
+		if (self has interaction_done) {
 			return TrainStationMainHall;
 		}
 		return TrashBinCop.potc();
@@ -763,7 +793,7 @@ Nearby SodaCan "soda can",
 	with description "This is a can of Dr. Breen's Private Reserve.";
 
 Nearby TrashBinCop "civil protection officer",
-	class CivilProtectionUnit,
+	class CivilProtectionOfficer,
 	with description [;
 		print "This is a civil protection officer with a stun baton. He looks bored. ";
 		if (location == MainHallAnteroom && MainHallAnteroom.potc_turn > -2) {
@@ -775,7 +805,7 @@ Nearby TrashBinCop "civil protection officer",
 			rfalse;
 		}
 		MainHallAnteroom.potc_turn = 4;
-		if (action == ##Examine) {
+		if (action == ##Examine || action == ##Talk) {
 			print " He";
 		} else
 			print (The)self, " is in the way. He ";
@@ -787,6 +817,10 @@ Nearby TrashBinCop "civil protection officer",
 		give TrashBin container;
 		give TrashBin ~supporter;
 		rtrue;
+	],
+	before [;
+		Talk:
+			return self.potc();
 	];
 
 Object TrainStationMainHall "Main Hall",
@@ -799,7 +833,7 @@ Object TrainStationMainHall "Main Hall",
 ! Reusable objects
 ! ----------------------------------------------------------------------------
 
-Object BreencastWelcome "Breencast",
+Object BreencastWelcome,
 	class Breencast,
 	with watch_text "The televised Dr Breen says, ~Welcome. Welcome to City 17.^
 		You have chosen, or been chosen, to relocate to one of our finest remaining urban centers.
@@ -809,7 +843,7 @@ Object BreencastWelcome "Breencast",
 		It's safer here.~",
 	found_in City17TrainStation City17TrainStationWaitingRoom NovaProspektLine;
 
-Object BreencastPlaza "Breencast",
+Object BreencastPlaza,
 	class Breencast,
 	with watch_text [;
 		print "The televised Dr Breen says, ~Let me read a letter I recently received.
@@ -859,15 +893,14 @@ Object Camera "security camera",
 		print " indicator light is mounted to the wall";
 		if (self has targeting_player)
 			". It is focused on you.";
-		", beeping every few seconds and swivelling from side to side.^It swivels to look at you, and its light turns red.";
+		", beeping every few seconds and swivelling from side to side.^It swivels to focus on you, and its light turns red.";
 	],
 	found_in NovaProspektLine,
 	has static;
 
-Object BatonCP1 "civil protection unit",
-	class CivilProtectionUnit,
-	with name "civil" "protection" "unit" "cp" "cop",
-	description "This is a member of Civil Protection. He is holding a stun baton. You probably shouldn't piss him off.",
+Object BatonCP1,
+	class CivilProtectionOfficer,
+	with description "This is a member of Civil Protection. He is holding a stun baton. You probably shouldn't piss him off.",
 	life [;
 		Attack: "With what, your bare hands?";
 	],
