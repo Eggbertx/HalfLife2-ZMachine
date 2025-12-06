@@ -59,20 +59,39 @@ Class Breencast
 Class CivilProtectionOfficer
 	with name "civil" "protection" "officer" "cp" "cop",
 	short_name "civil protection officer",
-	attack [ weapon;
-		switch(weapon) {
+	before [;
+		ThrownAt:
+			print "You throw ", (the)noun, " at ", (the)self;
+			if (random(2) == 1) {
+				print ".^";
+			} else {
+				print ", and it bounces off his head, angering him.^";
+			}
+			if (self.weapon == 1 or (location hasnt volatile)) {
+				! non-lethal hit
+				style bold;
+				print "~Suspect, prepare to receive civil judgement!~^";
+				style roman;
+				self.attack();
+			}
+			move noun to location;
+			rtrue;
+	],
+	weapon 1, ! 1 = stun baton, 2 = pistol, 3 = SMG
+	attack [;
+		switch(self.weapon) {
 		1: ! stun baton
 			print (The)self;
 			if (location hasnt volatile) {
 				! hit the player but don't do damage
-				print " hits you with the stun baton";
+				print " hits you with the stun baton, knocking you backwards. ";
 			} else {
 				if (random(4) == 1) {
 					! miss
-					print " swings the stun baton at you, but misses.";
+					print " swings the stun baton at you, but misses. ";
 				} else {
 					! hit
-					print " hits you with the stun baton.";
+					print " hits you with the stun baton. ";
 					TakeDamage(5, -1);
 				}
 			}
@@ -318,7 +337,7 @@ Class LocationDoor
 		of the form <verb>, <verb> <noun>, or <verb> <descriptive noun>, with optional abbreviations. For example, to move north, you can type ~go north~,
 		~move north~, ~go n~, ~north~, or ~n~. In addition, you can also move in other directions, such as the other cardinal directions, as well as
 		up, down, in, out, etc, depending on the location and available exits. Some locations may have special movement commands,
-		such as enter, exit, jump, etc. You can check your health with the ~health~ command.^
+		such as enter, exit, jump, etc.^
 		You can get a list of available directions by typing ~look~. or look at a specific thing or person by typing
 		~look/examine <name>~ (without quotes).^^
 		You can interact with objects and people by typing commands such as ~take/get <object>~, ~use <object>~,  ~talk person~,
@@ -469,12 +488,6 @@ Attribute interaction_done; ! for NPCs/locations that have had their interaction
 	"You hear nothing unexpected.";
 ];
 
-[ CheckHealthSub;
-	print "Health: ", health, " out of ", MAX_HEALTH, "^";
-	if (wearing_hev)
-		print "You are wearing the HEV suit.^";
-];
-
 [ NonsenseSub;
 	print "Nothing happens. What do you think this is, an Infocom game?^";
 	score--;
@@ -537,12 +550,12 @@ Verb "talk" "to"
 
 ! used for screens, instead of behaving the same as examine
 Extend "watch" replace
-	* noun -> Watch
+	* noun       -> Watch
 	* "the" noun -> Watch;
 
 Extend "listen" replace
-	* -> Listen
-	* noun -> Listen
+	*           -> Listen
+	* noun      -> Listen
 	* "to" noun -> Listen;
 
 ! copying and extending this from the standard library version to add look <noun> for brevity
@@ -561,9 +574,6 @@ Verb "stack"
 
 Verb "help" "h//"
 	* -> Help;
-
-Verb "status" "health"
-	* -> CheckHealth;
 
 Verb "xyzzy" "plugh" "plover"
 	* -> Nonsense;

@@ -167,7 +167,7 @@ Nearby MoveAway "civil protection officer",
 		if (self has targeting_player) {
 			"The civil protection officer looks at you and brandishes his stun baton.";
 		} else {
-			print "You see a civil protection officer holding a stun baton, harassing a citizen about his luggage.^";
+			print "You see a civil protection officer holding a stun baton, harassing a man about his luggage.^";
 			style bold;
 			print "~First warning, move away.~^";
 			style roman;
@@ -175,7 +175,7 @@ Nearby MoveAway "civil protection officer",
 			style bold;
 			print "~Final warning, move it!~^";
 			style roman;
-			print "~Alright, I'm moving, jeez...~^The citizen steps away from the luggage and passes through the turnstile.";
+			print "~Alright, I'm moving, jeez...~^The man steps away from the luggage and passes through the turnstile.";
 			give self targeting_player;
 		}
 	],
@@ -233,11 +233,6 @@ Nearby DontDrinkTheWaterCitizen "man sitting on a bench, looking confused",
 	],
 	talk_speech "He whispers, ~Don't drink the water. They put something in it to make you forget. I don't even remember how I got here.~";
 
-Nearby VendingMachine "vending machine",
-	with name "vending" "machine" "Dr" "Breens" "Private" "Reserve",
-	with description "This vending machine is labelled ~Dr>Breens Private Reserve~.",
-	has static;
-
 Nearby AnnoyedCitizen "annoyed looking man sitting on a bench",
 	class LimitedTalker,
 	with name "annoyed" "man" "citizen" "sitting" "on" "bench",
@@ -245,10 +240,10 @@ Nearby AnnoyedCitizen "annoyed looking man sitting on a bench",
 	talk_speech "He says, ~I see they took your suitcase too! They can't get away with this much longer.~",
 	has male;
 
-Nearby TwoCitizensBreenAgain "two citizens watching the breencast",
+Nearby TwoCitizensBreenAgain "two men watching the breencast",
 	class LimitedTalker,
-	with name "two" "citizens",
-	description "These are two citizens in denim coveralls, watching the breencast on a large display.",
+	with name "two" "men" "citizens",
+	description "These are two men in denim coveralls, watching the breencast on a large display.",
 	talk_speech "One of them says to the other, ~Dr. Breen again? I was hoping I'd seen the last of him in City 14.~^
 		The other leans in and whispers, ~I wouldn't say that too loud. This is his base of operations.~",
 	before [;
@@ -395,7 +390,7 @@ Nearby InterrogationDoorN "door to interrogation room 1",
 	],
 	viewing_window "Through the viewing window of the door, you see a man sitting in an interrogation chair and a civil protection
 		officer through the window of the door.^^
-		The citizen indignantly says, ~This must be a mistake. I got a standard relocation coupon, just like everybody else.~^^
+		The man indignantly says, ~This must be a mistake. I got a standard relocation coupon, just like everybody else.~^^
 		The officer notices you looking in, and shuts the viewing window.",
 	has static door openable locked;
 
@@ -646,33 +641,35 @@ Object DoorToMainHallAnteroom "door",
 Object MainHallAnteroom "Main Hall Anteroom",
 	with description [;
 		print "You are in a small room to the north of the main hall";
-		if (self hasnt interaction_done) {
+		if (TrashBinCop in location) {
 			", with a bored looking civil protection officer standing by a trash bin by the southern exit.";
+		} else {
+			give self interaction_done;
 		}
 		".";
 	],
 	submissive [;
 		! put can in bin
 		move SodaCan to TrashBin;
-		print (The)TrashBinCop, " chuckles and says, ";
-		style bold;
-		print "~Alright, you can go.~^";
-		style roman;
-		print "He turns and walks away.";
-		score = score + 2;
+		if (TrashBinCop in location) {
+			print (The)TrashBinCop, " chuckles and says, ";
+			style bold;
+			print "~Alright, you can go.~^";
+			style roman;
+			print "He turns and walks away.";
+			score = score + 2;
+			move TrashBinCop to TrainStationMainHall;
+		}
 		give self interaction_done;
-		move TrashBinCop to TrainStationMainHall;
 	],
 	defiant [;
 		! throw can at something other than the bin
 		move SodaCan to location;
-		style bold;
-		print "~Suspect, prepare to receive civil judgement.~^^";
-		style roman;
-		TrashBinCop.attack(1);
-		print " and walks away.^";
+		if (TrashBinCop in location) {
+			print "He chuckles to himself and walks away.^";
+			move TrashBinCop to TrainStationMainHall;
+		}
 		give self interaction_done;
-		move TrashBinCop to TrainStationMainHall;
 	],
 	initial [;
 		if (self hasnt visited) {
@@ -683,21 +680,25 @@ Object MainHallAnteroom "Main Hall Anteroom",
 	],
 	before [;
 		ThrowAt:
-			print "You throw ", (the)noun, " at ", (the)second, ".^";
+			if (noun == second) {
+				rfalse;
+			}
+			! print "You throw ", (the)noun, " at ", (the)second, ".^";
 			if (noun == SodaCan) {
-				if (second == TrashBinCop) {
-					print "It bounces off his head. The officer activates his stun baton and says, ";
-					self.defiant();
-					score = score + 4;
-				} else if (second == TrashBin) {
+				if (second == TrashBin) {
 					print "It lands in the trash bin. ";
 					self.submissive();
-				} else {
-					self.defiant();
 				}
 				self.potc_turn = -2;
-				rtrue;
 			}
+	],
+	each_turn [;
+		ThrowAt:
+			if (noun == SodaCan && second == TrashBinCop) {
+				self.defiant();
+				score = score + 4;
+			}
+			rtrue;
 	],
 	after [;
 		Insert:
@@ -707,7 +708,7 @@ Object MainHallAnteroom "Main Hall Anteroom",
 			if (noun == SodaCan && TrashBinCop in location) {
 				self.potc_turn = 3;
 				move SodaCan to player;
-				print (The)TrashBinCop, " says, ";
+				print "You pick up the can. ", (The)TrashBinCop, " says, ";
 				style bold;
 				print "~Now, put it in the trash can.~^";
 				style roman;
@@ -800,6 +801,7 @@ Nearby TrashBinCop "civil protection officer",
 			self.potc();
 		}
 	],
+	weapon 1, ! stun baton
 	potc [;
 		if (TrashBin hasnt supporter) {
 			rfalse;
@@ -825,8 +827,72 @@ Nearby TrashBinCop "civil protection officer",
 
 Object TrainStationMainHall "Main Hall",
 	with name "main" "hall" "of" "the" "train" "station",
-	description "You are in the main hall of the train station. Several citizens are lined up here for food rations.",
-	n_to MainHallAnteroom
+	description "You are in the main hall of the train station. Several citizens are lined up here for food rations. The floor has
+		litter scattered about.",
+	n_to MainHallAnteroom,
+	e_to MainHallDoor,
+	has light;
+
+Nearby YouGottaBeDamnHungryCitizen "man holding a ration bag",
+	class LimitedTalker,
+	with name "man" "citizen" "holding" "a" "ration" "bag",
+	description "He is wearing denim coveralls and holding a food ration bag that he just got from the dispenser.",
+	talk_speech [;
+		print "He says, ~You gotta be damn hungry to wait in line for this crap~, and leaves the main hall.";
+		remove self;
+	];
+
+Nearby GettingFoodCitizen "man receiving rations",
+	class LimitedTalker,
+	with name "man" "citizen" "getting" "receiving" "food" "rations",
+	description [;
+		if (YouGottaBeDamnHungryCitizen in location) {
+			"He is in the front of the line, waiting for the rations dispenser.";
+		}
+		"He is waiting for the dispenser to give him rations.";
+	],
+	talk_speech "He says, ~You'll have to wait your turn, like everyone else.~";
+
+Nearby ReadyToJoinCP "man waiting in line",
+	class LimitedTalker,
+	with name "man" "citizen" "waiting" "in" "line",
+	description "He wears denim coveralls, and is standing in line for food rations.",
+	talk_speech "He says, ~I don't know about you, but I'm ready to join Civil Protection
+		just to get a decent meal.~";
+
+Nearby RationsDispenser "rations dispenser",
+	with name "food" "rations" "dispenser",
+	with description "This is a food rations dispenser, mounted to the wall.",
+	has static;
+
+Object MainHallDoor "main hall door"
+	class LocationDoor,
+	with name "main" "hall" "door" "to" "plaza",
+	door_to [;
+		if (location == TrainStationMainHall) {
+			return City17Plaza;
+		}
+		return TrainStationMainHall;
+	],
+	door_dir [;
+		if (location == City17Plaza) {
+			return w_to;
+		}
+		return e_to;
+	],
+	found_in TrainStationMainHall City17Plaza;
+
+
+
+! ----------------------------------------------------------------------------
+! Train station plaza
+! ----------------------------------------------------------------------------
+
+Object City17Plaza "City 17 Train Station Plaza"
+	class GameLocation,
+	with description "You are in the plaza outside the train station. Men and women nervously go about their business, with their
+		eyes cast downward to avoid drawing attention from the patrolling civil protection officers.",
+	w_to MainHallDoor,
 	has light;
 
 ! ----------------------------------------------------------------------------
@@ -880,7 +946,25 @@ Object BreencastPlaza,
 		.Skip;
 			"Yeah, you probably have more important things to do.";
 	],
-	found_in TrainStationMainHall;
+	found_in TrainStationMainHall City17Plaza;
+
+Object VendingMachine "vending machine",
+	with name "vending" "machine" "Dr" "Breens" "Private" "Reserve",
+	with description "This vending machine is labelled ~Dr>Breens Private Reserve~.",
+	found_in City17TrainStationWaitingRoom TrainStationMainHall,
+	has static;
+
+Object Benches "benches",
+	with name "benches" "bench",
+	with description [;
+		print "These benches look like they've seen better days.";
+		if (location == TrainStationMainHall) {
+			" One of them has been overturned.";
+		}
+		rtrue;
+	],
+	found_in TrainStationMainHall,
+	has static pluralname;
 
 Object Camera "security camera",
 	with name "security" "camera",
@@ -904,7 +988,7 @@ Object BatonCP1,
 	life [;
 		Attack: "With what, your bare hands?";
 	],
-	found_in NovaProspektLine,
+	found_in NovaProspektLine City17Plaza,
 	has animate;
 
 Object CombineCommsComputer "Combine communications computer",
@@ -912,7 +996,6 @@ Object CombineCommsComputer "Combine communications computer",
 	description "This is an advanced looking computer with a large display mounted to the wall.",
 	found_in InterrogationRoom2,
 	has static;
-
 
 Object TrashBin "trash bin",
 	with name "trash" "bin",
