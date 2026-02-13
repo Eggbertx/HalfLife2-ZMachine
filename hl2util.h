@@ -8,10 +8,10 @@ Global talks = 0;
 ! and armor is not implemented.
 Global health = MAX_HEALTH;
 global hev_charge = MAX_HEV_CHARGE;
-Global wearing_hev = false;
+Attribute wearing_hev;
 ! whether the player has seen any breencast yet, since it seems weird to have it being referred to as a "Breencast" if they haven't seen it yet
-Global seen_breencast = false;
-Global obvious_exits = false;
+Attribute seen_breencast;
+Attribute obvious_exits;
 
 Replace ListenSub;
 Replace DrawStatusLine;
@@ -45,14 +45,14 @@ Class Breencast
 	class Screen,
 	with name "large" "display" "showing" "Dr" "Breen" "breencast",
 	short_name [;
-		if (seen_breencast)
+		if (player has seen_breencast)
 			print "Breencast";
 		else
 			print "large display showing Dr. Breen";
 		rtrue;
 	],
 	description [;
-		seen_breencast = true;
+		give player seen_breencast;
 		"On the large display, you can see Dr. Breen, the former administrator of Black Mesa. You can watch or listen to it.";
 	];
 
@@ -200,7 +200,7 @@ Class LocationDoor
 	if (location == nothing || location == thedark || location has enclosed) return;
 	! if (location has visited) print (name) location, "^";
 	! else print (name) location, " (first time seen)^";
-	if (obvious_exits) {
+	if (player has obvious_exits) {
 		new_line;
 	}
 
@@ -211,7 +211,7 @@ Class LocationDoor
 		! only if the location is volatile (i.e. something bad will happen if you don't move or do something)
 		turns--;
 	}
-	if (obvious_exits) {
+	if (player has obvious_exits) {
 		ExitsSub(); ! "obvious exits are..."
 	}
 ];
@@ -224,7 +224,7 @@ Class LocationDoor
 	width = ScreenWidth();
 
 	if (width > 66) {
-		if (wearing_hev) {
+		if (player has wearing_hev) {
 			! full size: Location Name     Health: 100  HEV: 100   Score: 999   Moves: 999
 			health_pos = width - 46;
 		} else {
@@ -232,7 +232,7 @@ Class LocationDoor
 			health_pos = width - 36;
 		}
 	} else if (width > 40) {
-		if (wearing_hev) {
+		if (player has wearing_hev) {
 			! smaller: Location Name  +:100  HEV:100  999/999
 			health_pos = width - 30;
 		} else {
@@ -269,13 +269,13 @@ Class LocationDoor
 
 	MoveCursor(1, health_pos);
 	if (width > 66) {
-		if (wearing_hev) {
+		if (player has wearing_hev) {
 			print "Health: ", health, "  HEV: ", hev_charge;
 		} else {
 			print "Health: ", health;
 		}
 	} else {
-		if (wearing_hev) {
+		if (player has wearing_hev) {
 			print "+:", health, "  HEV:", hev_charge;
 		} else {
 			print "+:", health;
@@ -321,7 +321,7 @@ Class LocationDoor
 	}
 	if (menu_item == 4) {
 		item_width = 20;
-		if (obvious_exits) {
+		if (player has obvious_exits) {
 			item_name = "Disable Obvious Exits";
 		} else {
 			item_name = "Enable Obvious Exits";
@@ -371,11 +371,13 @@ Class LocationDoor
 		a civil protection officer is nearby, trying to interact with them beyond looking may incur their wrath.^";
 	} else if (menu_item == 4) {
 		! Toggle obvious exits
-		if (obvious_exits) {
-			obvious_exits = false;
+		if (player has obvious_exits) {
+			! obvious_exits = false;
+			give player ~obvious_exits;
 			print "Obvious exits hinting disabled.^";
 		} else {
-			obvious_exits = true;
+			! obvious_exits = true;
+			give player obvious_exits;
 			print "Obvious exits hinting enabled.^";
 		}
 	}
@@ -405,7 +407,7 @@ Class LocationDoor
 	if (health <= 0) {
 		deadflag = flag_if_dead;
 		rtrue; ! signal that the player has died
-	} else if (health < 3 && wearing_hev) {
+	} else if (health < 3 && player has wearing_hev) {
 		print "Your HEV suit beeps urgently. ~Warning, vital signs critical.~";
 	}
 ];
